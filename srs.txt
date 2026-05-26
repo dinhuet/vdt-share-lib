@@ -1,0 +1,25 @@
+
+### Mô tả bài toán
+
+Trong các dự án Microservices hiện nay, việc các dịch vụ chia sẻ và đồng bộ dữ liệu với nhau (hoặc với bên thứ ba) thông qua Webhook và Message Queue rất phổ biến. Khi hệ thống phình to, doanh nghiệp sẽ khó quản lý các client của mình và đối mặt với rủi ro bảo mật dữ liệu.
+
+Giải pháp: Xây dựng một Thư viện dùng chung (Shared Library) kết hợp Hệ thống giám sát tập trung đóng vai trò cầu nối giữa hệ thống nội bộ và hệ thống client.
+
+### Yêu cầu chức năng
+
+1. **Thư viện dùng chung:**
+- Thư viện sử dụng Java Spring không chứa hàm main, đóng gói thành file .jar để tái sử dụng trong các Microservices nội bộ (AOP/Java agent-Elastic APM/Open telêmetry , HTTP interceptor - Tại sao chọn phương thức đó?)
+- Cung cấp các Custom Annotation dùng để đánh dấu các api chia sẻ ra ngoài (chiều outbound) và các hàm dùng chung để đánh dấu các request gọi tới các client (chiều inbound)
+- Xử lý bất đồng bộ và ghi log vào Elasticsearch
+1. **Hệ thống quản lý tập trung:**
+- Nhóm chức năng quản lý client: Quản lý các tài nguyên chia sẻ; cấu hình ngưỡng - rate limit, response time, request/response body size, phương thức cảnh báo  - sms branch name, email, 3rd party…. , thời gian lưu log, whitelist/blacklist (tạm thời, vĩnh viễn); **cơ chế xác thực client**(jwt,Client-ID / Secret Key, Ký số/timestamp,… ưu và nhược điểm cho. ừng phương thức xác thực; cơ chế retry, rollback; **các thuật toán phát hiện các request bất thường (xác suất thống kê, trung bình response time, ai agent, ml - Đánh đổi chi phí với độ hiệu quả).**..
+- Nhóm chức năng trực quan hóa dữ liệu: Xây dựng các biểu đồ, đồ thị từ dữ liệu các service đẩy vào Elasticsearch. Biểu đồ có tính linh động cao, (có thể realtime hoặc không), có thể nhúng iframe từ Kibana ELK Stack.
+
+#### Công nghệ sử dụng
+
+- Backend Framework: Java Spring, Keycloak/JWT
+- Message broker: Kafka
+- Database & Analytics: Elasticsearch + Kibana
+- Caching: Redis
+- Frontend Dashboard: ReactJS/Angular
+- Đóng gói Docker
