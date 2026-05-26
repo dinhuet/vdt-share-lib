@@ -1,4 +1,4 @@
-package com.pm.managementsystem.dto.response;
+package com.pm.be.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;

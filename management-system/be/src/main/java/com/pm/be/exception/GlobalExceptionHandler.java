@@ -1,7 +1,7 @@
 package com.pm.be.exception;
 
 
-import com.pm.managementsystem.dto.response.ApiResponse;
+import com.pm.be.dto.response.ApiResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
