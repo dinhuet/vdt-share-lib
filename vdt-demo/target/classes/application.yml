@@ -1,0 +1,9 @@
+spring:
+  application:
+    name: order-service
+server:
+  port: 8082
+vdt:
+  share:
+    enabled: true
+    serviceName: order-service
