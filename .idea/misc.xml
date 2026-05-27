@@ -5,6 +5,7 @@
     <option name="originalFiles">
       <list>
         <option value="$PROJECT_DIR$/management-system/be/pom.xml" />
+        <option value="$PROJECT_DIR$/shared-lib/pom.xml" />
       </list>
     </option>
   </component>
