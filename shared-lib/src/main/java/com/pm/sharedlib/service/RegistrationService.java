@@ -2,7 +2,6 @@ package com.pm.sharedlib.service;
 
 import com.pm.sharedlib.annotation.ClientCall;
 import com.pm.sharedlib.annotation.SharedApi;
-import com.pm.sharedlib.config.VdtShareProperties;
 import com.pm.sharedlib.kafka.RegistrationEventProducer;
 import com.pm.sharedlib.model.ServiceRegistrationEvent;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +17,6 @@ public class RegistrationService {
 
     private final ListableBeanFactory beanFactory;
     private final RegistrationEventProducer producer;
-    private final VdtShareProperties properties;
     private final Environment environment;
 
     @EventListener(ApplicationReadyEvent.class)
@@ -50,18 +48,26 @@ public class RegistrationService {
             }
         }
 
-        var serviceName = properties.getServiceName();
-        if (serviceName == null || serviceName.isBlank()) {
-            serviceName = environment.getProperty("spring.application.name", "unknown");
-        }
+        var serviceName = environment.getProperty("spring.application.name", "unknown");
+        var serviceUrl = buildServiceUrl();
 
         var event = ServiceRegistrationEvent.builder()
                 .eventType("SERVICE_STARTED")
                 .serviceName(serviceName)
+                .serviceUrl(serviceUrl)
                 .exposedApis(exposedApis)
                 .clientApis(clientApis)
                 .build();
 
         producer.send(event);
+    }
+
+    private String buildServiceUrl() {
+        var port = environment.getProperty("server.port", Integer.class, 8080);
+        var sslEnabled = environment.getProperty("server.ssl.enabled", Boolean.class, false);
+        var protocol = sslEnabled ? "https" : "http";
+        var contextPath = environment.getProperty("server.servlet.context-path", "");
+
+        return protocol + "://localhost:" + port + contextPath;
     }
 }

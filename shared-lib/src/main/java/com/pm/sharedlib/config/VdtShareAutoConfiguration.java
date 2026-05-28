@@ -35,8 +35,7 @@ public class VdtShareAutoConfiguration {
     public RegistrationService registrationService(
             ListableBeanFactory beanFactory,
             RegistrationEventProducer producer,
-            VdtShareProperties properties,
             Environment environment) {
-        return new RegistrationService(beanFactory, producer, properties, environment);
+        return new RegistrationService(beanFactory, producer, environment);
     }
 }
