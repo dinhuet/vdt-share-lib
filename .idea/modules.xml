@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/management-system/be/be.iml" filepath="$PROJECT_DIR$/management-system/be/be.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/vdt-share-lib.iml" filepath="$PROJECT_DIR$/.idea/vdt-share-lib.iml" />
     </modules>
   </component>

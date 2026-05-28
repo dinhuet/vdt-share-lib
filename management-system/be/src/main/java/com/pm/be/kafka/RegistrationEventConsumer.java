@@ -27,12 +27,14 @@ public class RegistrationEventConsumer {
 
             String serviceName = root.get("serviceName").asText();
             String serviceUrl = root.get("serviceUrl").asText();
+            String keyService = root.get("keyService").asText();
+
             log.info("Received registration event: {}", serviceName);
 
             var exposedApis = parseExposedApis(root.get("exposedApis"));
             var clientApis = parseClientApis(root.get("clientApis"));
 
-            syncService.sync(serviceName, serviceUrl, exposedApis, clientApis);
+            syncService.sync(serviceName, serviceUrl, keyService, exposedApis, clientApis);
         } catch (Exception e) {
             log.error("Failed to process registration event", e);
         }

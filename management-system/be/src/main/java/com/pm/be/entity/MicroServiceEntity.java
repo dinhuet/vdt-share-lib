@@ -28,6 +28,9 @@ public class MicroServiceEntity {
     @Column(name = "service_url", length = 255)
     String serviceUrl;
 
+    @Column(name = "key_service", unique = true)
+    String keyService;
+
     @Column(length = 20)
     @Builder.Default
     String status = "ACTIVE";

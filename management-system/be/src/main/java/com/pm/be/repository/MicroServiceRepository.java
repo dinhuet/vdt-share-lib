@@ -8,4 +8,5 @@ import java.util.UUID;
 
 public interface MicroServiceRepository extends JpaRepository<MicroServiceEntity, UUID> {
     Optional<MicroServiceEntity> findByName(String name);
+    Optional<MicroServiceEntity> findByKeyService(String keyService);
 }

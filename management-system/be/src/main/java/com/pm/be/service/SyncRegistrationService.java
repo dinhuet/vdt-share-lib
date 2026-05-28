@@ -23,16 +23,19 @@ public class SyncRegistrationService {
     private final ExposedApiRepository exposedApiRepo;
     private final ClientApiRepository clientApiRepo;
 
-    public void sync(String serviceName, String serviceUrl,
+    public void sync(String serviceName, String serviceUrl, String keyService,
                      java.util.List<ExposedApiInfo> exposedApis,
                      java.util.List<ClientApiInfo> clientApis) {
-        var service = microServiceRepo.findByName(serviceName)
+
+        var service = microServiceRepo.findByKeyService(keyService)
                 .orElseGet(() -> {
                     var svc = new MicroServiceEntity();
-                    svc.setName(serviceName);
+                    svc.setKeyService(keyService);
                     svc.setCreatedAt(LocalDateTime.now());
                     return svc;
                 });
+
+        service.setName(serviceName);
         service.setServiceUrl(serviceUrl);
         service.setStatus("ACTIVE");
         service.setUpdatedAt(LocalDateTime.now());
