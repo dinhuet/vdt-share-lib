@@ -1,5 +1,7 @@
 package com.pm.be.entity;
 
+import com.pm.be.enums.RegistrationSource;
+import com.pm.be.enums.SyncStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -60,12 +62,29 @@ public class ExposedApiEntity {
     @Builder.Default
     Integer logRetentionDays = 30;
 
+    @Column(name = "use_default_config")
+    @Builder.Default
+    Boolean useDefaultConfig = true;
+
     @Column(name = "notification_rule_id")
     UUID notificationRuleId;
 
     @Column(name = "is_enabled")
     @Builder.Default
     Boolean enabled = true;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "registration_source", length = 20)
+    @Builder.Default
+    RegistrationSource registrationSource = RegistrationSource.KAFKA_SYNC;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "sync_status", length = 20)
+    @Builder.Default
+    SyncStatus syncStatus = SyncStatus.ACTIVE;
+
+    @Column(name = "last_synced_at")
+    LocalDateTime lastSyncedAt;
 
     @Column(name = "created_at")
     LocalDateTime createdAt;

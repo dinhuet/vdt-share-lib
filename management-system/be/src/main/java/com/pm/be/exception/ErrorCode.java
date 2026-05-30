@@ -12,6 +12,11 @@ public enum ErrorCode {
     INVALID_KEY(1008, "Invalid key"),
     UNAUTHENTICATED(1009, "Unauthenticated"),
     ROLE_NOTFOUND(1010, "Role not found"),
+    MICROSERVICE_NOTFOUND(1011, "Micro service not found"),
+    API_DEFAULT_CONFIG_NOTFOUND(1012, "API default config not found"),
+    API_DEFAULT_CONFIG_INVALID(1013, "API default config invalid"),
+    EXPOSED_API_NOTFOUND(1014, "Exposed API not found"),
+    EXPOSED_API_INVALID_SETTING(1015, "Exposed API setting invalid"),
 
     ;
 
