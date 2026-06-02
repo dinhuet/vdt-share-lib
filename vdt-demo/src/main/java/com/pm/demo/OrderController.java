@@ -22,7 +22,7 @@ public class OrderController {
         return "created: " + order;
     }
 
-//    @ClientCall(name = "notify-partner", destinationUrl = "https://partner.com/webhook", method = "POST")
-//    public void notifyPartner() {
-//    }
+    @ClientCall(name = "notify-partner", destinationUrl = "https://partner.com/webhook", method = "POST")
+    public void notifyPartner() {
+    }
 }

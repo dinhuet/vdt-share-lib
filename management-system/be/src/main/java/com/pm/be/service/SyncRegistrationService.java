@@ -94,14 +94,16 @@ public class SyncRegistrationService {
                             var e = new ClientApiEntity();
                             e.setMicroServiceId(savedService.getId());
                             e.setName(api.name());
-                            e.setCreatedAt(LocalDateTime.now());
+                            e.setCreatedAt(now);
                             return e;
                         });
                 entity.setDestinationUrl(api.destinationUrl());
                 entity.setMethod(api.method());
                 entity.setProtocol(api.protocol());
                 entity.setEnabled(true);
-                entity.setUpdatedAt(LocalDateTime.now());
+                entity.setDeleted(false);
+                entity.setDeletedAt(null);
+                entity.setUpdatedAt(now);
                 clientApiRepo.save(entity);
                 log.info("Upserted client_api: {}", api.name());
             }

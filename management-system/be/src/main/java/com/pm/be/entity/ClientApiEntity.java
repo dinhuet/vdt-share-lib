@@ -68,6 +68,13 @@ public class ClientApiEntity {
     @Builder.Default
     Boolean enabled = true;
 
+    @Column(name = "is_deleted")
+    @Builder.Default
+    Boolean deleted = false;
+
+    @Column(name = "deleted_at")
+    LocalDateTime deletedAt;
+
     @Column(name = "created_at")
     LocalDateTime createdAt;
 

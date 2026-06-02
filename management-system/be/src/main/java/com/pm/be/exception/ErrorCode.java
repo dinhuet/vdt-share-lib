@@ -17,6 +17,9 @@ public enum ErrorCode {
     API_DEFAULT_CONFIG_INVALID(1013, "API default config invalid"),
     EXPOSED_API_NOTFOUND(1014, "Exposed API not found"),
     EXPOSED_API_INVALID_SETTING(1015, "Exposed API setting invalid"),
+    CLIENT_API_NOTFOUND(1016, "Client API not found"),
+    CLIENT_API_INVALID(1017, "Client API invalid"),
+    CLIENT_API_EXISTED(1018, "Client API already exists"),
 
     ;
 
