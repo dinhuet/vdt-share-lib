@@ -16,7 +16,7 @@ public class OrderController {
         return List.of("order1", "order2");
     }
 
-    @SharedApi(name = "create-order", path = "/api/orders", method = "POST")
+    @SharedApi(name = "create-order-v2", path = "/api/orders", method = "POST")
     @PostMapping
     public String createOrder(@RequestBody String order) {
         return "created: " + order;

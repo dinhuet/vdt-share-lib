@@ -26,6 +26,7 @@ public class ExposedApiService {
     private final ExposedApiRepository exposedApiRepo;
     private final MicroServiceRepository microServiceRepo;
     private final ApiDefaultConfigResolver apiDefaultConfigResolver;
+    private final ExposedApiRedisSyncService exposedApiRedisSyncService;
 
     public List<ExposedApiResponse> getAll(UUID microServiceId, SyncStatus syncStatus) {
         List<ExposedApiEntity> apis;
@@ -58,7 +59,7 @@ public class ExposedApiService {
         entity.setLogRetentionDays(request.getLogRetentionDays());
         entity.setUseDefaultConfig(false);
         entity.setUpdatedAt(LocalDateTime.now());
-        return toResponse(exposedApiRepo.save(entity));
+        return saveAndSync(entity);
     }
 
     public ExposedApiResponse useDefaultConfig(UUID id) {
@@ -66,7 +67,7 @@ public class ExposedApiService {
         apiDefaultConfigResolver.applyTo(entity);
         entity.setUseDefaultConfig(true);
         entity.setUpdatedAt(LocalDateTime.now());
-        return toResponse(exposedApiRepo.save(entity));
+        return saveAndSync(entity);
     }
 
     public ExposedApiResponse enable(UUID id) {
@@ -81,14 +82,28 @@ public class ExposedApiService {
         var entity = getEntity(id);
         entity.setNotificationRuleId(request.getNotificationRuleId());
         entity.setUpdatedAt(LocalDateTime.now());
-        return toResponse(exposedApiRepo.save(entity));
+        return saveAndSync(entity);
+    }
+
+    public ExposedApiResponse remove(UUID id) {
+        var entity = getEntity(id);
+        entity.setSyncStatus(SyncStatus.REMOVED);
+        entity.setEnabled(false);
+        entity.setUpdatedAt(LocalDateTime.now());
+        return saveAndSync(entity);
     }
 
     private ExposedApiResponse updateEnabled(UUID id, boolean enabled) {
         var entity = getEntity(id);
         entity.setEnabled(enabled);
         entity.setUpdatedAt(LocalDateTime.now());
-        return toResponse(exposedApiRepo.save(entity));
+        return saveAndSync(entity);
+    }
+
+    private ExposedApiResponse saveAndSync(ExposedApiEntity entity) {
+        var saved = exposedApiRepo.save(entity);
+        exposedApiRedisSyncService.syncApi(saved);
+        return toResponse(saved);
     }
 
     private ExposedApiEntity getEntity(UUID id) {

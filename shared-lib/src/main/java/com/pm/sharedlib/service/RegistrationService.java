@@ -10,10 +10,8 @@ import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.env.Environment;
+import org.springframework.util.StringUtils;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 
 @RequiredArgsConstructor
@@ -53,17 +51,16 @@ public class RegistrationService {
             }
         }
 
-        var serviceName = environment.getProperty("spring.application.name", "unknown");
+        var serviceName = environment.getProperty("spring.application.name");
+        if (!StringUtils.hasText(serviceName)) {
+            throw new IllegalStateException("spring.application.name must be configured when vdt.share.enabled=true");
+        }
         var serviceUrl = buildServiceUrl();
-
-        var keyService = environment.getProperty("vdt.share.key", "unknown");
-        saveKeyToFile(keyService);
 
         var event = ServiceRegistrationEvent.builder()
                 .eventType("SERVICE_STARTED")
                 .serviceName(serviceName)
                 .serviceUrl(serviceUrl)
-                .keyService(keyService)
                 .exposedApis(exposedApis)
                 .clientApis(clientApis)
                 .build();
@@ -78,31 +75,5 @@ public class RegistrationService {
         var contextPath = environment.getProperty("server.servlet.context-path", "");
 
         return protocol + "://localhost:" + port + contextPath;
-    }
-
-    private void saveKeyToFile(String key) {
-        try {
-            Path path = Path.of("shared-lib/service-key");
-
-            if (!Files.exists(path)) {
-                Files.createFile(path);
-            }
-
-            String existingContent = Files.readString(path);
-
-            if (existingContent != null && existingContent.contains(key)) {
-                log.info("Key already exists in file, skip writing");
-                return;
-            }
-
-            String newContent = (existingContent == null ? "" : existingContent + System.lineSeparator()) + key;
-
-            Files.writeString(path, newContent);
-
-            log.info("Saved service key to file");
-
-        } catch (IOException e) {
-            log.warn("Failed to save service key to file", e);
-        }
     }
 }

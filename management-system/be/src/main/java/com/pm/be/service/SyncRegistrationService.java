@@ -12,6 +12,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 
@@ -25,15 +26,20 @@ public class SyncRegistrationService {
     private final ExposedApiRepository exposedApiRepo;
     private final ClientApiRepository clientApiRepo;
     private final ApiDefaultConfigResolver apiDefaultConfigResolver;
+    private final ExposedApiRedisSyncService exposedApiRedisSyncService;
 
-    public void sync(String serviceName, String serviceUrl, String keyService,
-                     java.util.List<ExposedApiInfo> exposedApis,
-                     java.util.List<ClientApiInfo> clientApis) {
+    public void sync(String serviceName, String serviceUrl,
+                      java.util.List<ExposedApiInfo> exposedApis,
+                      java.util.List<ClientApiInfo> clientApis) {
 
-        var service = microServiceRepo.findByKeyService(keyService)
+        if (!StringUtils.hasText(serviceName)) {
+            throw new IllegalArgumentException("serviceName must not be blank");
+        }
+
+        var service = microServiceRepo.findByName(serviceName)
                 .orElseGet(() -> {
                     var svc = new MicroServiceEntity();
-                    svc.setKeyService(keyService);
+                    svc.setName(serviceName);
                     svc.setCreatedAt(LocalDateTime.now());
                     return svc;
                 });
@@ -52,6 +58,7 @@ public class SyncRegistrationService {
             existingApi.setUpdatedAt(now);
         }
         exposedApiRepo.saveAll(existingApis);
+        exposedApiRedisSyncService.syncAll(existingApis);
 
         if (exposedApis != null) {
             for (var api : exposedApis) {
@@ -73,7 +80,8 @@ public class SyncRegistrationService {
                 entity.setSyncStatus(SyncStatus.ACTIVE);
                 entity.setLastSyncedAt(now);
                 entity.setUpdatedAt(now);
-                exposedApiRepo.save(entity);
+                var savedApi = exposedApiRepo.save(entity);
+                exposedApiRedisSyncService.syncApi(savedApi);
                 log.info("Upserted exposed_api: {}", api.name());
             }
         }

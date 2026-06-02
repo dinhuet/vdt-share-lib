@@ -14,7 +14,6 @@ public class ServiceRegistrationEvent {
     String eventType;
     String serviceName;
     String serviceUrl;
-    String keyService;
     List<ApiInfo> exposedApis;
     List<ApiInfo> clientApis;
 

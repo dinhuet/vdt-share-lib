@@ -73,4 +73,11 @@ public class ExposedApiController {
                 .result(exposedApiService.updateNotificationRule(id, request))
                 .build();
     }
+
+    @PatchMapping("/{id}/remove")
+    public ApiResponse<ExposedApiResponse> remove(@PathVariable UUID id) {
+        return ApiResponse.<ExposedApiResponse>builder()
+                .result(exposedApiService.remove(id))
+                .build();
+    }
 }

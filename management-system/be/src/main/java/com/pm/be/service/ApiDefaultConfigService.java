@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
-@RequiredArgsConstructor
 @Transactional
 public class ApiDefaultConfigService {
 
@@ -28,6 +27,16 @@ public class ApiDefaultConfigService {
     private final MicroServiceRepository microServiceRepo;
     private final ExposedApiRepository exposedApiRepo;
     private final ApiDefaultConfigResolver apiDefaultConfigResolver;
+    private final ExposedApiRedisSyncService exposedApiRedisSyncService;
+
+    public ApiDefaultConfigService(ApiDefaultConfigRepository apiDefaultConfigRepo, MicroServiceRepository microServiceRepo, ExposedApiRepository exposedApiRepo, ApiDefaultConfigResolver apiDefaultConfigResolver, ExposedApiRedisSyncService exposedApiRedisSyncService) {
+        this.apiDefaultConfigRepo = apiDefaultConfigRepo;
+        this.microServiceRepo = microServiceRepo;
+        this.exposedApiRepo = exposedApiRepo;
+        this.apiDefaultConfigResolver = apiDefaultConfigResolver;
+        this.exposedApiRedisSyncService = exposedApiRedisSyncService;
+    }
+
 
     public ApiDefaultConfigResponse upsert(ApiDefaultConfigUpsertRequest request) {
         validateRequest(request);
@@ -140,6 +149,7 @@ public class ApiDefaultConfigService {
             api.setUpdatedAt(now);
         }
         exposedApiRepo.saveAll(apis);
+        exposedApiRedisSyncService.syncAll(apis);
     }
 
     private ApiDefaultConfigResponse toResponse(ApiDefaultConfigEntity entity) {
