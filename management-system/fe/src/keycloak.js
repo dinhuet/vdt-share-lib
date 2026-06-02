@@ -7,18 +7,36 @@ const keycloak = new Keycloak({
 });
 
 let initialized = false;
+let initPromise = null;
 
 export async function initKeycloak() {
-  if (initialized) return keycloak;
-  initialized = true;
-  try {
-    const authenticated = await keycloak.init({
+  if (initialized) {
+    return { keycloak, authenticated: Boolean(keycloak.authenticated) };
+  }
+
+  if (initPromise) {
+    return initPromise;
+  }
+
+  initPromise = keycloak.init({
       onLoad: 'check-sso',
       checkLoginIframe: false,
+    })
+    .then((authenticated) => {
+      initialized = true;
+      return { keycloak, authenticated };
+    })
+    .catch((err) => {
+      initialized = false;
+      initPromise = null;
+      throw err;
     });
-    return { keycloak, authenticated };
+
+  try {
+    return await initPromise;
   } catch (err) {
     initialized = false;
+    initPromise = null;
     throw err;
   }
 }

@@ -1,103 +1,56 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import keycloak, { initKeycloak } from './keycloak';
+import { useEffect, useState } from 'react';
+import AdminLayout from './layouts/AdminLayout';
+import AppRoutes from './routes/AppRoutes';
+import { initializeAuth, login, logout } from './services/authService';
+import { useAppStore } from './store/appStore';
 
 export default function App() {
+  const { activeRoute, setActiveRoute } = useAppStore();
   const [ready, setReady] = useState(false);
   const [authenticated, setAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
-  const [apiResult, setApiResult] = useState(null);
-  const [error, setError] = useState(null);
-  const initRef = useRef(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    if (initRef.current) return;
-    initRef.current = true;
-
-    initKeycloak()
-      .then(({ authenticated: auth }) => {
-        setAuthenticated(auth);
-        setReady(true);
-        if (auth) {
-          setUser({
-            username: keycloak.tokenParsed?.preferred_username,
-            email: keycloak.tokenParsed?.email,
-            name: keycloak.tokenParsed?.name,
-          });
-        }
+    let mounted = true;
+    initializeAuth()
+      .then((result) => {
+        if (!mounted) return;
+        setAuthenticated(result.authenticated);
+        setUser(result.user);
       })
-      .catch((err) => {
-        setError('Failed to initialize Keycloak: ' + (err.message || err));
-        setReady(true);
-      });
+      .catch((err) => setError(`Failed to initialize Keycloak: ${err.message || err}`))
+      .finally(() => mounted && setReady(true));
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
-  const handleLogin = () => keycloak.login();
+  if (!ready) {
+    return <div className="auth-screen"><div className="auth-card"><span className="spinner" />Checking session...</div></div>;
+  }
 
-  const handleLogout = () => keycloak.logout({ redirectUri: window.location.origin });
+  if (error) {
+    return <div className="auth-screen"><div className="auth-card error-card">{error}</div></div>;
+  }
 
-  const refreshToken = useCallback(async () => {
-    try {
-      await keycloak.updateToken(30);
-      return true;
-    } catch {
-      setAuthenticated(false);
-      return false;
-    }
-  }, []);
-
-  const callApi = useCallback(async (endpoint) => {
-    const ok = await refreshToken();
-    if (!ok) {
-      setApiResult({ error: 'Token refresh failed, please login again' });
-      return;
-    }
-    try {
-      const res = await fetch(endpoint, {
-        headers: { Authorization: `Bearer ${keycloak.token}` },
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      setApiResult(data);
-    } catch (err) {
-      setApiResult({ error: err.message });
-    }
-  }, [refreshToken]);
-
-  if (!ready) return <div className="container"><p>Loading...</p></div>;
-  if (error) return <div className="container"><p className="error">{error}</p></div>;
+  if (!authenticated) {
+    return (
+      <div className="auth-screen">
+        <section className="auth-card">
+          <div className="auth-mark">ML</div>
+          <h1>MicroLib Manager</h1>
+          <p>Sign in with Keycloak to manage exposed APIs and default config policies.</p>
+          <button className="btn btn-primary" type="button" onClick={login}>Login with Keycloak</button>
+        </section>
+      </div>
+    );
+  }
 
   return (
-    <div className="container">
-      <h1>Keycloak Demo</h1>
-
-      {!authenticated ? (
-        <div className="card">
-          <p>You are not logged in.</p>
-          <button onClick={handleLogin}>Login with Keycloak</button>
-        </div>
-      ) : (
-        <>
-          <div className="card">
-            <h2>User Info</h2>
-            <p><strong>Username:</strong> {user?.username}</p>
-            <p><strong>Email:</strong> {user?.email}</p>
-            <p><strong>Name:</strong> {user?.name}</p>
-            <button onClick={handleLogout}>Logout</button>
-          </div>
-
-          <div className="card">
-            <h2>API Demo</h2>
-            <div className="api-buttons">
-              <button onClick={() => callApi('/api/demo/public')}>Call Public API</button>
-              <button onClick={() => callApi('/api/demo/secure')}>Call Secure API</button>
-              <button onClick={() => callApi('/api/demo/user')}>Call User API</button>
-            </div>
-            {apiResult && (
-              <pre className="result">{JSON.stringify(apiResult, null, 2)}</pre>
-            )}
-          </div>
-        </>
-      )}
-    </div>
+    <AdminLayout activeRoute={activeRoute} onRouteChange={setActiveRoute} onLogout={logout} user={user}>
+      <AppRoutes activeRoute={activeRoute} />
+    </AdminLayout>
   );
 }
