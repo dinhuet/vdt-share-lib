@@ -1,9 +1,14 @@
 export const ROUTES = {
   SHARED_APIS: 'sharedApis',
+  CLIENT_APIS: 'clientApis',
   DEFAULT_CONFIGS: 'defaultConfigs',
 };
 
 export const SYNC_STATUSES = ['ACTIVE', 'STALE', 'REMOVED'];
+
+export const HTTP_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
+
+export const CLIENT_API_PROTOCOLS = ['HTTP/1.1', 'HTTP/2', 'gRPC'];
 
 export const APPLY_MODES = ['NEW_ONLY', 'APPLY_TO_EXISTING', 'FORCE_APPLY_ALL'];
 
@@ -165,5 +170,66 @@ export const SAMPLE_DEFAULT_CONFIGS = [
     timeoutMs: 5000,
     logRetentionDays: 7,
     updatedAt: new Date(Date.now() - 14 * 60 * 1000).toISOString(),
+  },
+];
+
+export const SAMPLE_CLIENT_APIS = [
+  {
+    id: 'client-api-sample-1',
+    microServiceId: 'svc-order',
+    microServiceName: 'order-service',
+    clientId: null,
+    name: 'PaymentAuthorizeClient',
+    destinationUrl: 'http://payment-service/api/v1/payments/authorize',
+    method: 'POST',
+    protocol: 'HTTP/1.1',
+    latencyThresholdMs: 300,
+    timeoutMs: 5000,
+    maxRetries: 3,
+    retryDelayMs: 1000,
+    failureAction: 'LOG_AND_FAIL',
+    logRetentionDays: 30,
+    enabled: true,
+    deleted: false,
+    updatedAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'client-api-sample-2',
+    microServiceId: 'svc-inventory',
+    microServiceName: 'inventory-service',
+    clientId: null,
+    name: 'OrderStatusLookup',
+    destinationUrl: 'http://order-service/api/v1/orders/{orderId}',
+    method: 'GET',
+    protocol: 'HTTP/2',
+    latencyThresholdMs: 150,
+    timeoutMs: 3000,
+    maxRetries: 2,
+    retryDelayMs: 500,
+    failureAction: 'RETRY_THEN_ALERT',
+    logRetentionDays: 14,
+    enabled: true,
+    deleted: false,
+    updatedAt: new Date(Date.now() - 35 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'client-api-sample-3',
+    microServiceId: 'svc-auth',
+    microServiceName: 'user-auth-service',
+    clientId: null,
+    name: 'LegacyRiskScoreClient',
+    destinationUrl: 'grpc://risk-service/RiskScore/Get',
+    method: 'POST',
+    protocol: 'gRPC',
+    latencyThresholdMs: 80,
+    timeoutMs: 2000,
+    maxRetries: 1,
+    retryDelayMs: 250,
+    failureAction: 'SKIP_OPTIONAL_CHECK',
+    logRetentionDays: 7,
+    enabled: false,
+    deleted: true,
+    deletedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
   },
 ];
