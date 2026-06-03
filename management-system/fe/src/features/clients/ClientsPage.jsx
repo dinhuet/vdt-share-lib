@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Button from '../../components/Button';
 import StatCard from '../../components/StatCard';
 import { activateClient, createClient, deactivateClient, deleteClient, getClients, revokeClient, updateClient } from '../../services/clientsService';
+import ClientCredentialsModal from './ClientCredentialsModal';
 import ClientModal from './ClientModal';
 import ClientsFilters from './ClientsFilters';
 import ClientsTable from './ClientsTable';
@@ -134,7 +135,7 @@ export default function ClientsPage() {
           <h2>Inbound Clients</h2>
           <div><Button variant="ghost" disabled={loading}>≡</Button><Button variant="ghost" onClick={loadClients}>⇩</Button></div>
         </div>
-        <ClientsTable clients={displayedClients} busyId={busyId} onEdit={(client) => setModal({ mode: 'edit', client })} onActivate={handleActivate} onDeactivate={handleDeactivate} onRevoke={(client) => setModal({ mode: 'revoke', client })} onDelete={handleDelete} />
+        <ClientsTable clients={displayedClients} busyId={busyId} onEdit={(client) => setModal({ mode: 'edit', client })} onCredentials={(client) => setModal({ mode: 'credentials', client })} onActivate={handleActivate} onDeactivate={handleDeactivate} onRevoke={(client) => setModal({ mode: 'revoke', client })} onDelete={handleDelete} />
       </section>
       <div className="table-footer"><span>Showing {displayedClients.length} of {clients.length} clients</span><div><Button variant="ghost" disabled>Previous</Button><Button variant="ghost">Next</Button></div></div>
       <div className="insight-grid">
@@ -144,6 +145,7 @@ export default function ClientsPage() {
       </div>
       {modal?.mode === 'create' || modal?.mode === 'edit' ? <ClientModal client={modal.client} saving={Boolean(busyId)} onClose={() => setModal(null)} onSave={handleSave} /> : null}
       {modal?.mode === 'revoke' ? <RevokeClientModal client={modal.client} saving={Boolean(busyId)} onClose={() => setModal(null)} onConfirm={handleRevoke} /> : null}
+      {modal?.mode === 'credentials' ? <ClientCredentialsModal client={modal.client} onClose={() => setModal(null)} /> : null}
     </div>
   );
 }
