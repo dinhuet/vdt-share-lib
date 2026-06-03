@@ -57,6 +57,13 @@ public class ClientApiController {
                 .build();
     }
 
+    @PatchMapping("/{id}/use-default-config")
+    public ApiResponse<ClientApiResponse> useDefaultConfig(@PathVariable UUID id) {
+        return ApiResponse.<ClientApiResponse>builder()
+                .result(clientApiService.useDefaultConfig(id))
+                .build();
+    }
+
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@PathVariable UUID id) {
         clientApiService.delete(id);

@@ -4,11 +4,13 @@ import com.pm.be.dto.request.ApiDefaultConfigUpsertRequest;
 import com.pm.be.dto.response.ApiDefaultConfigResponse;
 import com.pm.be.entity.ApiDefaultConfigEntity;
 import com.pm.be.entity.MicroServiceEntity;
+import com.pm.be.enums.ApiConfigType;
 import com.pm.be.enums.DefaultApplyMode;
 import com.pm.be.enums.DefaultConfigScope;
 import com.pm.be.exception.AppException;
 import com.pm.be.exception.ErrorCode;
 import com.pm.be.repository.ApiDefaultConfigRepository;
+import com.pm.be.repository.ClientApiRepository;
 import com.pm.be.repository.ExposedApiRepository;
 import com.pm.be.repository.MicroServiceRepository;
 import jakarta.transaction.Transactional;
@@ -26,15 +28,19 @@ public class ApiDefaultConfigService {
     private final ApiDefaultConfigRepository apiDefaultConfigRepo;
     private final MicroServiceRepository microServiceRepo;
     private final ExposedApiRepository exposedApiRepo;
+    private final ClientApiRepository clientApiRepo;
     private final ApiDefaultConfigResolver apiDefaultConfigResolver;
     private final ExposedApiRedisSyncService exposedApiRedisSyncService;
+    private final ClientApiRedisSyncService clientApiRedisSyncService;
 
-    public ApiDefaultConfigService(ApiDefaultConfigRepository apiDefaultConfigRepo, MicroServiceRepository microServiceRepo, ExposedApiRepository exposedApiRepo, ApiDefaultConfigResolver apiDefaultConfigResolver, ExposedApiRedisSyncService exposedApiRedisSyncService) {
+    public ApiDefaultConfigService(ApiDefaultConfigRepository apiDefaultConfigRepo, MicroServiceRepository microServiceRepo, ExposedApiRepository exposedApiRepo, ClientApiRepository clientApiRepo, ApiDefaultConfigResolver apiDefaultConfigResolver, ExposedApiRedisSyncService exposedApiRedisSyncService, ClientApiRedisSyncService clientApiRedisSyncService) {
         this.apiDefaultConfigRepo = apiDefaultConfigRepo;
         this.microServiceRepo = microServiceRepo;
         this.exposedApiRepo = exposedApiRepo;
+        this.clientApiRepo = clientApiRepo;
         this.apiDefaultConfigResolver = apiDefaultConfigResolver;
         this.exposedApiRedisSyncService = exposedApiRedisSyncService;
+        this.clientApiRedisSyncService = clientApiRedisSyncService;
     }
 
 
@@ -45,6 +51,7 @@ public class ApiDefaultConfigService {
         var entity = findExisting(request)
                 .orElseGet(() -> {
                     var newEntity = new ApiDefaultConfigEntity();
+                    newEntity.setApiType(resolveApiType(request));
                     newEntity.setScope(request.getScope());
                     newEntity.setMicroServiceId(request.getMicroServiceId());
                     newEntity.setCreatedAt(now);
@@ -80,13 +87,15 @@ public class ApiDefaultConfigService {
     }
 
     private java.util.Optional<ApiDefaultConfigEntity> findExisting(ApiDefaultConfigUpsertRequest request) {
+        var apiType = resolveApiType(request);
         if (request.getScope() == DefaultConfigScope.GLOBAL) {
-            return apiDefaultConfigRepo.findByScopeAndMicroServiceIdIsNull(DefaultConfigScope.GLOBAL);
+            return apiDefaultConfigRepo.findByApiTypeAndScopeAndMicroServiceIdIsNull(apiType, DefaultConfigScope.GLOBAL);
         }
-        return apiDefaultConfigRepo.findByScopeAndMicroServiceId(DefaultConfigScope.SERVICE, request.getMicroServiceId());
+        return apiDefaultConfigRepo.findByApiTypeAndScopeAndMicroServiceId(apiType, DefaultConfigScope.SERVICE, request.getMicroServiceId());
     }
 
     private void validateRequest(ApiDefaultConfigUpsertRequest request) {
+        var apiType = resolveApiType(request);
         if (request.getScope() == null) {
             throw new AppException(ErrorCode.API_DEFAULT_CONFIG_INVALID);
         }
@@ -108,6 +117,10 @@ public class ApiDefaultConfigService {
         validatePositive(request.getLatencyThresholdMs());
         validatePositive(request.getTimeoutMs());
         validatePositive(request.getLogRetentionDays());
+        if (apiType == ApiConfigType.CLIENT) {
+            validatePositive(request.getMaxRetries());
+            validatePositive(request.getRetryDelayMs());
+        }
     }
 
     private void validatePositive(Integer value) {
@@ -117,6 +130,7 @@ public class ApiDefaultConfigService {
     }
 
     private void applyRequest(ApiDefaultConfigEntity entity, ApiDefaultConfigUpsertRequest request) {
+        entity.setApiType(resolveApiType(request));
         entity.setMaxRequests(request.getMaxRequests());
         entity.setThrottleWindowSec(request.getThrottleWindowSec());
         entity.setMaxRequestKb(request.getMaxRequestKb());
@@ -124,6 +138,10 @@ public class ApiDefaultConfigService {
         entity.setLatencyThresholdMs(request.getLatencyThresholdMs());
         entity.setTimeoutMs(request.getTimeoutMs());
         entity.setLogRetentionDays(request.getLogRetentionDays());
+        entity.setMaxRetries(request.getMaxRetries());
+        entity.setRetryDelayMs(request.getRetryDelayMs());
+        entity.setFailureAction(request.getFailureAction());
+        entity.setNotificationRuleId(request.getNotificationRuleId());
         entity.setEnabled(request.getEnabled() != null ? request.getEnabled() : true);
     }
 
@@ -132,6 +150,15 @@ public class ApiDefaultConfigService {
             return;
         }
 
+        if (config.getApiType() == ApiConfigType.CLIENT) {
+            handleClientApplyMode(config, applyMode);
+            return;
+        }
+
+        handleExposedApplyMode(config, applyMode);
+    }
+
+    private void handleExposedApplyMode(ApiDefaultConfigEntity config, DefaultApplyMode applyMode) {
         var apis = config.getScope() == DefaultConfigScope.GLOBAL
                 ? exposedApiRepo.findAll()
                 : exposedApiRepo.findByMicroServiceId(config.getMicroServiceId());
@@ -152,9 +179,31 @@ public class ApiDefaultConfigService {
         exposedApiRedisSyncService.syncAll(apis);
     }
 
+    private void handleClientApplyMode(ApiDefaultConfigEntity config, DefaultApplyMode applyMode) {
+        var apis = config.getScope() == DefaultConfigScope.GLOBAL
+                ? clientApiRepo.findAll()
+                : clientApiRepo.findByMicroServiceId(config.getMicroServiceId());
+
+        if (applyMode == DefaultApplyMode.APPLY_TO_EXISTING) {
+            apis = apis.stream()
+                    .filter(api -> Boolean.TRUE.equals(api.getUseDefaultConfig()))
+                    .toList();
+        }
+
+        var now = LocalDateTime.now();
+        for (var api : apis) {
+            apiDefaultConfigResolver.applyTo(api);
+            api.setUseDefaultConfig(true);
+            api.setUpdatedAt(now);
+        }
+        clientApiRepo.saveAll(apis);
+        clientApiRedisSyncService.syncAll(apis);
+    }
+
     private ApiDefaultConfigResponse toResponse(ApiDefaultConfigEntity entity) {
         return ApiDefaultConfigResponse.builder()
                 .id(entity.getId())
+                .apiType(entity.getApiType())
                 .scope(entity.getScope())
                 .microServiceId(entity.getMicroServiceId())
                 .microServiceName(resolveMicroServiceName(entity.getMicroServiceId()))
@@ -165,6 +214,10 @@ public class ApiDefaultConfigService {
                 .latencyThresholdMs(entity.getLatencyThresholdMs())
                 .timeoutMs(entity.getTimeoutMs())
                 .logRetentionDays(entity.getLogRetentionDays())
+                .maxRetries(entity.getMaxRetries())
+                .retryDelayMs(entity.getRetryDelayMs())
+                .failureAction(entity.getFailureAction())
+                .notificationRuleId(entity.getNotificationRuleId())
                 .enabled(entity.getEnabled())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
@@ -178,5 +231,9 @@ public class ApiDefaultConfigService {
         return microServiceRepo.findById(microServiceId)
                 .map(MicroServiceEntity::getName)
                 .orElse(null);
+    }
+
+    private ApiConfigType resolveApiType(ApiDefaultConfigUpsertRequest request) {
+        return request.getApiType() != null ? request.getApiType() : ApiConfigType.EXPOSED;
     }
 }

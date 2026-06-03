@@ -132,6 +132,7 @@ public class ClientApiRedisSyncService {
                 .retryDelayMs(api.getRetryDelayMs())
                 .failureAction(api.getFailureAction())
                 .logRetentionDays(api.getLogRetentionDays())
+                .useDefaultConfig(api.getUseDefaultConfig())
                 .notificationRuleId(api.getNotificationRuleId())
                 .enabled(api.getEnabled())
                 .syncStatus(api.getSyncStatus())

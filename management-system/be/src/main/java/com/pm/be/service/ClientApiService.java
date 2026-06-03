@@ -30,6 +30,7 @@ public class ClientApiService {
     private final ClientApiRepository clientApiRepo;
     private final MicroServiceRepository microServiceRepo;
     private final ClientApiRedisSyncService clientApiRedisSyncService;
+    private final ApiDefaultConfigResolver apiDefaultConfigResolver;
 
     public List<ClientApiResponse> getAll(UUID microServiceId, UUID clientId, Boolean enabled, SyncStatus syncStatus) {
         return clientApiRepo.findAll(buildSpec(microServiceId, clientId, enabled, syncStatus)).stream()
@@ -83,6 +84,16 @@ public class ClientApiService {
         }
         clientApiRedisSyncService.deleteApi(entity);
         clientApiRepo.delete(entity);
+    }
+
+    public ClientApiResponse useDefaultConfig(UUID id) {
+        var entity = getEntity(id);
+        apiDefaultConfigResolver.applyTo(entity);
+        entity.setUseDefaultConfig(true);
+        entity.setUpdatedAt(LocalDateTime.now());
+        var saved = clientApiRepo.save(entity);
+        clientApiRedisSyncService.syncApi(saved);
+        return toResponse(saved);
     }
 
     private ClientApiResponse updateEnabled(UUID id, boolean enabled) {
@@ -152,6 +163,7 @@ public class ClientApiService {
         entity.setRetryDelayMs(request.getRetryDelayMs());
         entity.setFailureAction(request.getFailureAction());
         entity.setLogRetentionDays(request.getLogRetentionDays());
+        entity.setUseDefaultConfig(false);
         entity.setNotificationRuleId(request.getNotificationRuleId());
         entity.setEnabled(request.getEnabled() != null ? request.getEnabled() : entity.getEnabled());
     }
@@ -178,6 +190,7 @@ public class ClientApiService {
                 .retryDelayMs(entity.getRetryDelayMs())
                 .failureAction(entity.getFailureAction())
                 .logRetentionDays(entity.getLogRetentionDays())
+                .useDefaultConfig(entity.getUseDefaultConfig())
                 .notificationRuleId(entity.getNotificationRuleId())
                 .enabled(entity.getEnabled())
                 .syncStatus(entity.getSyncStatus())

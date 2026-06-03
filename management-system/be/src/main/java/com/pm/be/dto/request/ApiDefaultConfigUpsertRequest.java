@@ -1,5 +1,6 @@
 package com.pm.be.dto.request;
 
+import com.pm.be.enums.ApiConfigType;
 import com.pm.be.enums.DefaultApplyMode;
 import com.pm.be.enums.DefaultConfigScope;
 import lombok.*;
@@ -13,6 +14,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ApiDefaultConfigUpsertRequest {
+    ApiConfigType apiType;
     DefaultConfigScope scope;
     UUID microServiceId;
     Integer maxRequests;
@@ -22,6 +24,10 @@ public class ApiDefaultConfigUpsertRequest {
     Integer latencyThresholdMs;
     Integer timeoutMs;
     Integer logRetentionDays;
+    Integer maxRetries;
+    Integer retryDelayMs;
+    String failureAction;
+    UUID notificationRuleId;
     Boolean enabled;
     DefaultApplyMode applyMode;
 }

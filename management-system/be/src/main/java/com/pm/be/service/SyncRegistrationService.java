@@ -103,7 +103,8 @@ public class SyncRegistrationService {
                             var e = new ClientApiEntity();
                             e.setMicroServiceId(savedService.getId());
                             e.setName(api.name());
-                            e.setEnabled(true);
+                            e.setUseDefaultConfig(true);
+                            apiDefaultConfigResolver.applyTo(e);
                             e.setCreatedAt(now);
                             return e;
                         });

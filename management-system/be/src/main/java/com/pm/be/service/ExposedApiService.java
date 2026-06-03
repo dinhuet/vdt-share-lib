@@ -81,6 +81,7 @@ public class ExposedApiService {
     public ExposedApiResponse updateNotificationRule(UUID id, ExposedApiNotificationRuleUpdateRequest request) {
         var entity = getEntity(id);
         entity.setNotificationRuleId(request.getNotificationRuleId());
+        entity.setUseDefaultConfig(false);
         entity.setUpdatedAt(LocalDateTime.now());
         return saveAndSync(entity);
     }

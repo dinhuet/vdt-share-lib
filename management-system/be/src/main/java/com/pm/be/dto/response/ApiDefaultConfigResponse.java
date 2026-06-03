@@ -1,5 +1,6 @@
 package com.pm.be.dto.response;
 
+import com.pm.be.enums.ApiConfigType;
 import com.pm.be.enums.DefaultConfigScope;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -14,6 +15,7 @@ import java.util.UUID;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ApiDefaultConfigResponse {
     UUID id;
+    ApiConfigType apiType;
     DefaultConfigScope scope;
     UUID microServiceId;
     String microServiceName;
@@ -24,6 +26,10 @@ public class ApiDefaultConfigResponse {
     Integer latencyThresholdMs;
     Integer timeoutMs;
     Integer logRetentionDays;
+    Integer maxRetries;
+    Integer retryDelayMs;
+    String failureAction;
+    UUID notificationRuleId;
     Boolean enabled;
     LocalDateTime createdAt;
     LocalDateTime updatedAt;

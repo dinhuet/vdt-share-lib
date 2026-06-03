@@ -27,6 +27,7 @@ public class ClientApiRedisConfig {
     Integer retryDelayMs;
     String failureAction;
     Integer logRetentionDays;
+    Boolean useDefaultConfig;
     UUID notificationRuleId;
     Boolean enabled;
     SyncStatus syncStatus;

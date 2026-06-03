@@ -62,6 +62,10 @@ public class ClientApiEntity {
     @Builder.Default
     Integer logRetentionDays = 30;
 
+    @Column(name = "use_default_config")
+    @Builder.Default
+    Boolean useDefaultConfig = true;
+
     @Column(name = "notification_rule_id")
     UUID notificationRuleId;
 

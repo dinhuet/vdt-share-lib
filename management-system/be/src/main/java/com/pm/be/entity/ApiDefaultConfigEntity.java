@@ -1,6 +1,7 @@
 package com.pm.be.entity;
 
 import com.pm.be.enums.DefaultConfigScope;
+import com.pm.be.enums.ApiConfigType;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -15,12 +16,16 @@ import java.util.UUID;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Entity
 @Table(name = "api_default_config", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"scope", "micro_service_id"})
+        @UniqueConstraint(columnNames = {"api_type", "scope", "micro_service_id"})
 })
 public class ApiDefaultConfigEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     UUID id;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "api_type", length = 20)
+    ApiConfigType apiType;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -49,6 +54,18 @@ public class ApiDefaultConfigEntity {
 
     @Column(name = "log_retention_days")
     Integer logRetentionDays;
+
+    @Column(name = "max_retries")
+    Integer maxRetries;
+
+    @Column(name = "retry_delay_ms")
+    Integer retryDelayMs;
+
+    @Column(name = "failure_action", length = 50)
+    String failureAction;
+
+    @Column(name = "notification_rule_id")
+    UUID notificationRuleId;
 
     @Column(name = "is_enabled")
     @Builder.Default
