@@ -13,10 +13,10 @@ import java.util.UUID;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Entity
-@Table(name = "auth_config", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"client_id", "exposed_api_id"})
+@Table(name = "client_exposed_api_permission", uniqueConstraints = {
+        @UniqueConstraint(name = "uk_client_exposed_api_permission", columnNames = {"client_id", "exposed_api_id"})
 })
-public class AuthConfigEntity {
+public class ClientExposedApiPermissionEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     UUID id;
@@ -24,25 +24,10 @@ public class AuthConfigEntity {
     @Column(name = "client_id", nullable = false)
     UUID clientId;
 
-    @Column(name = "exposed_api_id")
+    @Column(name = "exposed_api_id", nullable = false)
     UUID exposedApiId;
 
-    @Column(nullable = false, length = 20)
-    String type;
-
-    @Column(name = "api_secret", length = 255)
-    String apiSecret;
-
-    @Column(name = "public_key", columnDefinition = "TEXT")
-    String publicKey;
-
-    @Column(length = 50)
-    String algorithm;
-
-    @Column(name = "expires_at")
-    LocalDateTime expiresAt;
-
-    @Column(name = "is_enabled")
+    @Column(name = "is_enabled", nullable = false)
     @Builder.Default
     Boolean enabled = true;
 
