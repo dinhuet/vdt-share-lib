@@ -75,3 +75,19 @@ export function getServiceOptions(configs) {
   });
   return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
 }
+
+export function filterDefaultConfigs(configs, { apiType, scope, microServiceId, enabled, search }) {
+  const keyword = search.trim().toLowerCase();
+  return configs.filter((config) => {
+    const matchesApiType = !apiType || (config.apiType || 'EXPOSED') === apiType;
+    const matchesScope = !scope || config.scope === scope;
+    const matchesService = !microServiceId || config.microServiceId === microServiceId;
+    const matchesEnabled = enabled === '' || String(Boolean(config.enabled)) === enabled;
+    const matchesSearch = !keyword
+      || config.microServiceName?.toLowerCase().includes(keyword)
+      || config.microServiceId?.toLowerCase().includes(keyword)
+      || config.failureAction?.toLowerCase().includes(keyword)
+      || config.notificationRuleId?.toLowerCase().includes(keyword);
+    return matchesApiType && matchesScope && matchesService && matchesEnabled && matchesSearch;
+  });
+}
