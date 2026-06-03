@@ -27,6 +27,11 @@ public enum ErrorCode {
     CLIENT_INVALID(1023, "Client invalid"),
     CLIENT_STATUS_INVALID(1024, "Client status invalid"),
     CLIENT_DELETE_NOT_ALLOWED(1025, "Only revoked clients can be deleted"),
+    CLIENT_CREDENTIAL_NOTFOUND(1026, "Client credential not found"),
+    CLIENT_CREDENTIAL_EXISTED(1027, "Client credential already exists"),
+    CLIENT_CREDENTIAL_INVALID(1028, "Client credential invalid"),
+    CLIENT_CREDENTIAL_REVOKE_NOT_ALLOWED(1029, "Only active client credentials can be revoked"),
+    CLIENT_CREDENTIAL_SECRET_INVALID(1030, "Client credential secret invalid"),
 
     ;
 

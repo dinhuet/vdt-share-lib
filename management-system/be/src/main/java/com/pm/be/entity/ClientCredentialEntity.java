@@ -1,5 +1,6 @@
 package com.pm.be.entity;
 
+import com.pm.be.enums.ClientCredentialStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -41,12 +42,22 @@ public class ClientCredentialEntity {
     @Builder.Default
     String algorithm = "HMAC-SHA256";
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @Builder.Default
-    String status = "ACTIVE";
+    ClientCredentialStatus status = ClientCredentialStatus.ACTIVE;
 
     @Column(name = "expires_at")
     LocalDateTime expiresAt;
+
+    @Column(name = "revoked_at")
+    LocalDateTime revokedAt;
+
+    @Column(name = "revoked_by", length = 255)
+    String revokedBy;
+
+    @Column(name = "revoke_reason", columnDefinition = "TEXT")
+    String revokeReason;
 
     @Column(name = "created_at")
     LocalDateTime createdAt;

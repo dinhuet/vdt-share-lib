@@ -13,4 +13,6 @@ public interface ClientCredentialRepository extends JpaRepository<ClientCredenti
     List<ClientCredentialEntity> findByClientId(UUID clientId);
 
     List<ClientCredentialEntity> findByClientIdAndMicroServiceId(UUID clientId, UUID microServiceId);
+
+    boolean existsByClientIdAndMicroServiceIdAndKeyId(UUID clientId, UUID microServiceId, String keyId);
 }
