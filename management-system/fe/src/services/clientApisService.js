@@ -25,6 +25,10 @@ export function disableClientApi(id) {
   return apiRequest(`${BASE_PATH}/${id}/disable`, { method: 'PATCH' });
 }
 
+export function useDefaultClientApiConfig(id) {
+  return apiRequest(`${BASE_PATH}/${id}/use-default-config`, { method: 'PATCH' });
+}
+
 export function deleteClientApi(id) {
   return apiRequest(`${BASE_PATH}/${id}`, { method: 'DELETE' });
 }

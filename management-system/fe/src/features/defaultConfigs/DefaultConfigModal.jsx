@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import Button from '../../components/Button';
 import Modal from '../../components/Modal';
-import { APPLY_MODES } from '../../utils/constants';
+import { API_CONFIG_TYPES, APPLY_MODES } from '../../utils/constants';
 import { validatePositiveFields } from '../../utils/format';
-import { configFields, configFormToPayload, configToForm } from './defaultConfigs.helpers';
+import { configFormToPayload, configToForm, getConfigFields, getNumericConfigFields } from './defaultConfigs.helpers';
 
 export default function DefaultConfigModal({ mode, config, serviceOptions, saving, onClose, onSave }) {
   const [form, setForm] = useState(() => configToForm(config, mode));
@@ -19,7 +19,7 @@ export default function DefaultConfigModal({ mode, config, serviceOptions, savin
       setError('Service default config requires a microservice.');
       return;
     }
-    const validationError = validatePositiveFields(payload, configFields.map(([key]) => key));
+    const validationError = validatePositiveFields(payload, getNumericConfigFields(payload.apiType));
     if (validationError) {
       setError(validationError);
       return;
@@ -48,6 +48,12 @@ export default function DefaultConfigModal({ mode, config, serviceOptions, savin
             <option value="SERVICE">SERVICE</option>
           </select>
         </label>
+        <label>
+          <span>API Type</span>
+          <select value={form.apiType} disabled={Boolean(config)} onChange={(event) => updateField('apiType', event.target.value)}>
+            {API_CONFIG_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}
+          </select>
+        </label>
         {form.scope === 'SERVICE' ? (
           <label>
             <span>Microservice</span>
@@ -61,10 +67,10 @@ export default function DefaultConfigModal({ mode, config, serviceOptions, savin
           <input type="checkbox" checked={form.enabled} onChange={(event) => updateField('enabled', event.target.checked)} />
           Enabled
         </label>
-        {configFields.map(([key, label]) => (
+        {getConfigFields(form.apiType).map(([key, label]) => (
           <label key={key}>
             <span>{label}</span>
-            <input type="number" min="1" value={form[key]} onChange={(event) => updateField(key, event.target.value)} />
+            <input type={key === 'failureAction' || key === 'notificationRuleId' ? 'text' : 'number'} min="1" value={form[key]} onChange={(event) => updateField(key, event.target.value)} />
           </label>
         ))}
         <label>

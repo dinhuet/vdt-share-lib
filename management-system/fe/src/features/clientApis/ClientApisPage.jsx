@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Button from '../../components/Button';
 import StatCard from '../../components/StatCard';
-import { deleteClientApi, disableClientApi, enableClientApi, getClientApis, updateClientApi } from '../../services/clientApisService';
+import { deleteClientApi, disableClientApi, enableClientApi, getClientApis, updateClientApi, useDefaultClientApiConfig } from '../../services/clientApisService';
 import { getExposedApis } from '../../services/exposedApisService';
 import { SAMPLE_APIS, SAMPLE_CLIENT_APIS } from '../../utils/constants';
 import { getMicroservices } from '../exposedApis/exposedApis.helpers';
@@ -104,6 +104,18 @@ export default function ClientApisPage() {
     }
   }
 
+  async function handleUseDefault(api) {
+    setBusyId(api.id);
+    try {
+      const saved = await useDefaultClientApiConfig(api.id);
+      upsertClientApiInList(saved);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusyId('');
+    }
+  }
+
   return (
     <div className="page-content">
       <div className="page-header">
@@ -123,7 +135,7 @@ export default function ClientApisPage() {
           <h2>Outbound API Dependencies</h2>
           <div><Button variant="ghost" disabled={loading}>≡</Button><Button variant="ghost" onClick={loadClientApis}>⇩</Button></div>
         </div>
-        <ClientApisTable clientApis={displayedClientApis} busyId={busyId} onEdit={(clientApi) => setModal({ mode: 'edit', clientApi })} onToggleEnabled={handleToggleEnabled} onDelete={handleDelete} />
+        <ClientApisTable clientApis={displayedClientApis} busyId={busyId} onEdit={(clientApi) => setModal({ mode: 'edit', clientApi })} onToggleEnabled={handleToggleEnabled} onUseDefault={handleUseDefault} onDelete={handleDelete} />
       </section>
       <div className="table-footer"><span>Showing {displayedClientApis.length} of {clientApis.length} client APIs</span><div><Button variant="ghost" disabled>Previous</Button><Button variant="ghost">Next</Button></div></div>
       <div className="insight-grid">

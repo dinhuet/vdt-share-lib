@@ -12,6 +12,8 @@ export const CLIENT_API_PROTOCOLS = ['HTTP/1.1', 'HTTP/2', 'gRPC'];
 
 export const APPLY_MODES = ['NEW_ONLY', 'APPLY_TO_EXISTING', 'FORCE_APPLY_ALL'];
 
+export const API_CONFIG_TYPES = ['EXPOSED', 'CLIENT'];
+
 export const DEFAULT_LIMIT_FORM = {
   maxRequests: '',
   throttleWindowSec: '',
@@ -20,6 +22,10 @@ export const DEFAULT_LIMIT_FORM = {
   latencyThresholdMs: '',
   timeoutMs: '',
   logRetentionDays: '',
+  maxRetries: '',
+  retryDelayMs: '',
+  failureAction: '',
+  notificationRuleId: '',
 };
 
 export const SAMPLE_APIS = [
@@ -128,6 +134,7 @@ export const SAMPLE_APIS = [
 export const SAMPLE_DEFAULT_CONFIGS = [
   {
     id: 'default-global',
+    apiType: 'EXPOSED',
     scope: 'GLOBAL',
     microServiceId: null,
     microServiceName: null,
@@ -139,10 +146,12 @@ export const SAMPLE_DEFAULT_CONFIGS = [
     latencyThresholdMs: 250,
     timeoutMs: 15000,
     logRetentionDays: 30,
+    notificationRuleId: null,
     updatedAt: new Date(Date.now() - 14 * 60 * 1000).toISOString(),
   },
   {
     id: 'default-payment',
+    apiType: 'EXPOSED',
     scope: 'SERVICE',
     microServiceId: 'svc-payment',
     microServiceName: 'Payment-Gateway-V2',
@@ -154,21 +163,23 @@ export const SAMPLE_DEFAULT_CONFIGS = [
     latencyThresholdMs: 50,
     timeoutMs: 2000,
     logRetentionDays: 90,
+    notificationRuleId: null,
     updatedAt: new Date(Date.now() - 14 * 60 * 1000).toISOString(),
   },
   {
     id: 'default-auth',
+    apiType: 'CLIENT',
     scope: 'SERVICE',
     microServiceId: 'svc-auth',
     microServiceName: 'User-Auth-Service',
     enabled: false,
-    maxRequests: 500,
-    throttleWindowSec: 1,
-    maxRequestKb: 1024,
-    maxResponseKb: 1024,
     latencyThresholdMs: 100,
     timeoutMs: 5000,
+    maxRetries: 1,
+    retryDelayMs: 250,
+    failureAction: 'SKIP_OPTIONAL_CHECK',
     logRetentionDays: 7,
+    notificationRuleId: null,
     updatedAt: new Date(Date.now() - 14 * 60 * 1000).toISOString(),
   },
 ];
@@ -189,6 +200,8 @@ export const SAMPLE_CLIENT_APIS = [
     retryDelayMs: 1000,
     failureAction: 'LOG_AND_FAIL',
     logRetentionDays: 30,
+    notificationRuleId: null,
+    useDefaultConfig: true,
     enabled: true,
     syncStatus: 'ACTIVE',
     lastSyncedAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
@@ -209,6 +222,8 @@ export const SAMPLE_CLIENT_APIS = [
     retryDelayMs: 500,
     failureAction: 'RETRY_THEN_ALERT',
     logRetentionDays: 14,
+    notificationRuleId: null,
+    useDefaultConfig: false,
     enabled: true,
     syncStatus: 'ACTIVE',
     lastSyncedAt: new Date(Date.now() - 35 * 60 * 1000).toISOString(),
@@ -229,6 +244,8 @@ export const SAMPLE_CLIENT_APIS = [
     retryDelayMs: 250,
     failureAction: 'SKIP_OPTIONAL_CHECK',
     logRetentionDays: 7,
+    notificationRuleId: null,
+    useDefaultConfig: true,
     enabled: false,
     syncStatus: 'STALE',
     lastSyncedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),

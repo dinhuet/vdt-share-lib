@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import Button from '../../components/Button';
+import { getClientApis } from '../../services/clientApisService';
 import { deleteDefaultConfig, getDefaultConfigs, upsertDefaultConfig } from '../../services/defaultConfigsService';
 import { getExposedApis } from '../../services/exposedApisService';
-import { SAMPLE_APIS, SAMPLE_DEFAULT_CONFIGS } from '../../utils/constants';
+import { SAMPLE_APIS, SAMPLE_CLIENT_APIS, SAMPLE_DEFAULT_CONFIGS } from '../../utils/constants';
 import DefaultConfigModal from './DefaultConfigModal';
 import DefaultConfigStats from './DefaultConfigStats';
 import DefaultConfigsTable from './DefaultConfigsTable';
@@ -11,6 +12,7 @@ import { getServiceOptions } from './defaultConfigs.helpers';
 export default function DefaultConfigsPage() {
   const [configs, setConfigs] = useState([]);
   const [apis, setApis] = useState([]);
+  const [clientApis, setClientApis] = useState([]);
   const [loading, setLoading] = useState(false);
   const [busyId, setBusyId] = useState('');
   const [error, setError] = useState('');
@@ -20,9 +22,10 @@ export default function DefaultConfigsPage() {
   const serviceOptions = useMemo(() => {
     const fromConfigs = getServiceOptions(configs);
     const fromApis = getServiceOptions(apis.map((api) => ({ microServiceId: api.microServiceId, microServiceName: api.microServiceName })));
-    const map = new Map([...fromConfigs, ...fromApis].map((service) => [service.id, service.name]));
+    const fromClientApis = getServiceOptions(clientApis.map((api) => ({ microServiceId: api.microServiceId, microServiceName: api.microServiceName })));
+    const map = new Map([...fromConfigs, ...fromApis, ...fromClientApis].map((service) => [service.id, service.name]));
     return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
-  }, [configs, apis]);
+  }, [configs, apis, clientApis]);
 
   useEffect(() => {
     loadConfigs();
@@ -32,13 +35,15 @@ export default function DefaultConfigsPage() {
     setLoading(true);
     setError('');
     try {
-      const [configData, apiData] = await Promise.all([getDefaultConfigs(), getExposedApis()]);
+      const [configData, apiData, clientApiData] = await Promise.all([getDefaultConfigs(), getExposedApis(), getClientApis()]);
       setConfigs(configData || []);
       setApis(apiData || []);
+      setClientApis(clientApiData || []);
       setUsingSampleData(false);
     } catch (err) {
       setConfigs(SAMPLE_DEFAULT_CONFIGS);
       setApis(SAMPLE_APIS);
+      setClientApis(SAMPLE_CLIENT_APIS);
       setUsingSampleData(true);
       setError(err.message);
     } finally {
@@ -95,7 +100,7 @@ export default function DefaultConfigsPage() {
       <div className="page-header">
         <div>
           <h1>Default API Configs</h1>
-          <p>Manage global and service-specific baseline configurations for all microservices.</p>
+          <p>Manage global and service-specific baselines for exposed and client APIs.</p>
         </div>
         <div className="header-actions">
           <Button variant="secondary" onClick={() => setModal({ mode: 'create-global' })}>◎ Create Global Default</Button>
