@@ -123,6 +123,14 @@ public class ClientService {
         return toResponse(clientRepo.save(entity));
     }
 
+    public void delete(UUID id) {
+        var entity = getEntity(id);
+        if (entity.getStatus() != ClientStatus.REVOKED) {
+            throw new AppException(ErrorCode.CLIENT_DELETE_NOT_ALLOWED);
+        }
+        clientRepo.delete(entity);
+    }
+
     private ClientEntity getEntity(UUID id) {
         return clientRepo.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.CLIENT_NOTFOUND));

@@ -26,6 +26,7 @@ public enum ErrorCode {
     CLIENT_EXISTED(1022, "Client already exists"),
     CLIENT_INVALID(1023, "Client invalid"),
     CLIENT_STATUS_INVALID(1024, "Client status invalid"),
+    CLIENT_DELETE_NOT_ALLOWED(1025, "Only revoked clients can be deleted"),
 
     ;
 

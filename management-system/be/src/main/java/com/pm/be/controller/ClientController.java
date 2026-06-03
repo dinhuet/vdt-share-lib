@@ -69,4 +69,10 @@ public class ClientController {
                 .result(clientService.revoke(id, request))
                 .build();
     }
+
+    @DeleteMapping("/{id}")
+    public ApiResponse<Void> delete(@PathVariable UUID id) {
+        clientService.delete(id);
+        return ApiResponse.<Void>builder().build();
+    }
 }

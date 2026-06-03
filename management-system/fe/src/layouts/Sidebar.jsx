@@ -2,7 +2,7 @@ import { ROUTES } from '../utils/constants';
 
 const navItems = [
   ['Dashboard', '▦', 'disabled-dashboard'],
-  ['Clients', '♣', 'disabled-clients'],
+  ['Clients', '♣', ROUTES.CLIENTS],
   ['Shared APIs', '✥', ROUTES.SHARED_APIS],
   ['Client APIs', '▱', ROUTES.CLIENT_APIS],
   ['Default Configs', '⚙', ROUTES.DEFAULT_CONFIGS],

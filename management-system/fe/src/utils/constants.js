@@ -1,8 +1,11 @@
 export const ROUTES = {
+  CLIENTS: 'clients',
   SHARED_APIS: 'sharedApis',
   CLIENT_APIS: 'clientApis',
   DEFAULT_CONFIGS: 'defaultConfigs',
 };
+
+export const CLIENT_STATUSES = ['ACTIVE', 'INACTIVE', 'REVOKED'];
 
 export const SYNC_STATUSES = ['ACTIVE', 'STALE'];
 
