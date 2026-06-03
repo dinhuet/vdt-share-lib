@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Button from '../../components/Button';
 import StatCard from '../../components/StatCard';
-import { createClientApi, deleteClientApi, disableClientApi, enableClientApi, getClientApis, restoreClientApi, updateClientApi } from '../../services/clientApisService';
+import { deleteClientApi, disableClientApi, enableClientApi, getClientApis, updateClientApi } from '../../services/clientApisService';
 import { getExposedApis } from '../../services/exposedApisService';
 import { SAMPLE_APIS, SAMPLE_CLIENT_APIS } from '../../utils/constants';
 import { getMicroservices } from '../exposedApis/exposedApis.helpers';
@@ -13,7 +13,7 @@ import { filterClientApis, getMicroservicesFromClientApis, mergeServiceOptions }
 export default function ClientApisPage() {
   const [clientApis, setClientApis] = useState([]);
   const [exposedApis, setExposedApis] = useState([]);
-  const [filters, setFilters] = useState({ microServiceId: '', enabled: '', deleted: 'active', search: '' });
+  const [filters, setFilters] = useState({ microServiceId: '', enabled: '', syncStatus: '', search: '' });
   const [loading, setLoading] = useState(false);
   const [busyId, setBusyId] = useState('');
   const [error, setError] = useState('');
@@ -26,9 +26,9 @@ export default function ClientApisPage() {
     getMicroservices(exposedApis),
   ), [clientApis, exposedApis]);
   const counts = useMemo(() => ({
-    active: clientApis.filter((api) => !api.deleted && api.enabled).length,
-    disabled: clientApis.filter((api) => !api.deleted && !api.enabled).length,
-    deleted: clientApis.filter((api) => api.deleted).length,
+    active: clientApis.filter((api) => api.syncStatus === 'ACTIVE').length,
+    stale: clientApis.filter((api) => api.syncStatus === 'STALE').length,
+    disabled: clientApis.filter((api) => api.syncStatus === 'ACTIVE' && !api.enabled).length,
   }), [clientApis]);
 
   useEffect(() => {
@@ -40,7 +40,7 @@ export default function ClientApisPage() {
     setError('');
     try {
       const [clientApiData, exposedApiData] = await Promise.all([
-        getClientApis({ includeDeleted: true }),
+        getClientApis(),
         getExposedApis(),
       ]);
       setClientApis(clientApiData || []);
@@ -70,7 +70,7 @@ export default function ClientApisPage() {
   async function handleSave(currentApi, payload) {
     setBusyId(currentApi?.id || 'new');
     try {
-      const saved = currentApi ? await updateClientApi(currentApi.id, payload) : await createClientApi(payload);
+      const saved = await updateClientApi(currentApi.id, payload);
       upsertClientApiInList(saved);
       setModal(null);
     } catch (err) {
@@ -96,24 +96,7 @@ export default function ClientApisPage() {
     setBusyId(api.id);
     try {
       await deleteClientApi(api.id);
-      setClientApis((current) => current.map((item) => (item.id === api.id ? {
-        ...item,
-        deleted: true,
-        deletedAt: new Date().toISOString(),
-        enabled: false,
-      } : item)));
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setBusyId('');
-    }
-  }
-
-  async function handleRestore(api) {
-    setBusyId(api.id);
-    try {
-      const saved = await restoreClientApi(api.id);
-      upsertClientApiInList(saved);
+      setClientApis((current) => current.filter((item) => item.id !== api.id));
     } catch (err) {
       setError(err.message);
     } finally {
@@ -126,11 +109,10 @@ export default function ClientApisPage() {
       <div className="page-header">
         <div>
           <h1>Client APIs</h1>
-          <p className="status-line"><span className="dot green" /> Active: {counts.active} <span className="dot orange" /> Disabled: {counts.disabled} <span className="dot red" /> Deleted: {counts.deleted}</p>
+          <p className="status-line"><span className="dot green" /> Active: {counts.active} <span className="dot orange" /> Stale: {counts.stale} <span className="dot red" /> Disabled: {counts.disabled}</p>
         </div>
         <div className="header-actions">
           <Button variant="secondary" onClick={loadClientApis} disabled={loading}>⟳ Refresh</Button>
-          <Button onClick={() => setModal({ mode: 'create' })}>⊕ Create Client API</Button>
         </div>
       </div>
       {usingSampleData ? <div className="notice">Showing sample data because backend is unavailable. {error}</div> : null}
@@ -141,13 +123,13 @@ export default function ClientApisPage() {
           <h2>Outbound API Dependencies</h2>
           <div><Button variant="ghost" disabled={loading}>≡</Button><Button variant="ghost" onClick={loadClientApis}>⇩</Button></div>
         </div>
-        <ClientApisTable clientApis={displayedClientApis} busyId={busyId} onEdit={(clientApi) => setModal({ mode: 'edit', clientApi })} onToggleEnabled={handleToggleEnabled} onDelete={handleDelete} onRestore={handleRestore} />
+        <ClientApisTable clientApis={displayedClientApis} busyId={busyId} onEdit={(clientApi) => setModal({ mode: 'edit', clientApi })} onToggleEnabled={handleToggleEnabled} onDelete={handleDelete} />
       </section>
       <div className="table-footer"><span>Showing {displayedClientApis.length} of {clientApis.length} client APIs</span><div><Button variant="ghost" disabled>Previous</Button><Button variant="ghost">Next</Button></div></div>
       <div className="insight-grid">
-        <StatCard icon="⇄" label="Retry Protected" value={`${clientApis.filter((api) => !api.deleted && api.maxRetries > 0).length} APIs`} tone="purple" meta="client calls configured with retry policy" />
-        <StatCard icon="⌁" label="Low Latency Target" value={`${clientApis.filter((api) => !api.deleted && api.latencyThresholdMs && api.latencyThresholdMs <= 100).length} APIs`} tone="blue" meta="outbound calls under 100ms threshold" />
-        <StatCard icon="▤" label="Soft Deleted" value={`${counts.deleted} APIs`} tone="danger" meta="available for restore from filters" />
+        <StatCard icon="⇄" label="Retry Protected" value={`${clientApis.filter((api) => api.syncStatus === 'ACTIVE' && api.maxRetries > 0).length} APIs`} tone="purple" meta="client calls configured with retry policy" />
+        <StatCard icon="⌁" label="Low Latency Target" value={`${clientApis.filter((api) => api.syncStatus === 'ACTIVE' && api.latencyThresholdMs && api.latencyThresholdMs <= 100).length} APIs`} tone="blue" meta="outbound calls under 100ms threshold" />
+        <StatCard icon="▤" label="Stale Records" value={`${counts.stale} APIs`} tone="danger" meta="can be deleted after admin review" />
       </div>
       {modal ? <ClientApiModal clientApi={modal.clientApi} serviceOptions={microservices} saving={Boolean(busyId)} onClose={() => setModal(null)} onSave={handleSave} /> : null}
     </div>

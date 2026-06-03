@@ -5,7 +5,6 @@ export default function Badge({ children, tone = 'neutral', size = 'md' }) {
 export function statusTone(status) {
   if (status === 'ACTIVE') return 'success';
   if (status === 'STALE') return 'warning';
-  if (status === 'REMOVED') return 'danger';
   return 'neutral';
 }
 

@@ -6,7 +6,7 @@ import { formatRelativeTime } from '../../utils/date';
 
 const columns = ['API Name', 'Service', 'Method', 'Path', 'Protocol', 'Enabled', 'Default Config', 'Sync Status', 'Last Sync', 'Actions'];
 
-export default function ExposedApisTable({ apis, busyId, onToggleEnabled, onConfigure, onResetDefault, onRemove }) {
+export default function ExposedApisTable({ apis, busyId, onToggleEnabled, onConfigure, onResetDefault, onDelete }) {
   return (
     <DataTable
       columns={columns}
@@ -28,7 +28,7 @@ export default function ExposedApisTable({ apis, busyId, onToggleEnabled, onConf
             <div className="row-actions">
               <Button variant="ghost" onClick={() => onConfigure(api)}>Config</Button>
               <Button variant="ghost" disabled={api.id?.startsWith('sample')} onClick={() => onResetDefault(api)}>Default</Button>
-              <Button variant="danger-ghost" disabled={api.id?.startsWith('sample')} onClick={() => onRemove(api)}>Remove</Button>
+              <Button variant="danger-ghost" disabled={busyId === api.id || api.syncStatus !== 'STALE' || api.id?.startsWith('sample')} onClick={() => onDelete(api)}>Delete</Button>
             </div>
           </td>
         </tr>

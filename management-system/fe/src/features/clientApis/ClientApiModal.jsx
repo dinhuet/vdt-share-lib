@@ -31,7 +31,7 @@ export default function ClientApiModal({ clientApi, serviceOptions, saving, onCl
 
   return (
     <Modal
-      title={clientApi ? 'Edit Client API' : 'Create Client API'}
+      title="Edit Client API"
       description="Configure outbound API dependencies used by a microservice."
       onClose={onClose}
       footer={(

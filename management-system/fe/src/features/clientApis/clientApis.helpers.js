@@ -64,19 +64,18 @@ export function clientApiFormToPayload(form) {
   };
 }
 
-export function filterClientApis(clientApis, { microServiceId, enabled, deleted, search }) {
+export function filterClientApis(clientApis, { microServiceId, enabled, syncStatus, search }) {
   const keyword = search.trim().toLowerCase();
   return clientApis.filter((api) => {
-    const isDeleted = Boolean(api.deleted);
     const matchesService = !microServiceId || api.microServiceId === microServiceId;
     const matchesEnabled = enabled === '' || String(Boolean(api.enabled)) === enabled;
-    const matchesDeleted = deleted === 'include' || (deleted === 'deleted' ? isDeleted : !isDeleted);
+    const matchesStatus = !syncStatus || api.syncStatus === syncStatus;
     const matchesSearch = !keyword
       || api.name?.toLowerCase().includes(keyword)
       || api.destinationUrl?.toLowerCase().includes(keyword)
       || api.microServiceName?.toLowerCase().includes(keyword)
       || api.protocol?.toLowerCase().includes(keyword);
-    return matchesService && matchesEnabled && matchesDeleted && matchesSearch;
+    return matchesService && matchesEnabled && matchesStatus && matchesSearch;
   });
 }
 

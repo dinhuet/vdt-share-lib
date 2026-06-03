@@ -10,13 +10,6 @@ export function getClientApi(id) {
   return apiRequest(`${BASE_PATH}/${id}`);
 }
 
-export function createClientApi(payload) {
-  return apiRequest(BASE_PATH, {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  });
-}
-
 export function updateClientApi(id, payload) {
   return apiRequest(`${BASE_PATH}/${id}`, {
     method: 'PUT',
@@ -34,8 +27,4 @@ export function disableClientApi(id) {
 
 export function deleteClientApi(id) {
   return apiRequest(`${BASE_PATH}/${id}`, { method: 'DELETE' });
-}
-
-export function restoreClientApi(id) {
-  return apiRequest(`${BASE_PATH}/${id}/restore`, { method: 'PATCH' });
 }

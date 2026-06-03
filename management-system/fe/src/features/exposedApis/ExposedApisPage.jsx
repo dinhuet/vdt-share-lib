@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Button from '../../components/Button';
 import StatCard from '../../components/StatCard';
-import { disableApi, enableApi, getExposedApis, removeApi, updateExposedApiLimits, useDefaultConfig } from '../../services/exposedApisService';
+import { deleteExposedApi, disableApi, enableApi, getExposedApis, updateExposedApiLimits, useDefaultConfig } from '../../services/exposedApisService';
 import { SAMPLE_APIS } from '../../utils/constants';
 import ExposedApiConfigModal from './ExposedApiConfigModal';
 import ExposedApisFilters from './ExposedApisFilters';
@@ -22,7 +22,6 @@ export default function ExposedApisPage() {
   const counts = useMemo(() => ({
     active: apis.filter((api) => api.syncStatus === 'ACTIVE').length,
     stale: apis.filter((api) => api.syncStatus === 'STALE').length,
-    removed: apis.filter((api) => api.syncStatus === 'REMOVED').length,
   }), [apis]);
 
   useEffect(() => {
@@ -78,11 +77,12 @@ export default function ExposedApisPage() {
     }
   }
 
-  async function handleRemove(api) {
+  async function handleDelete(api) {
     setBusyId(api.id);
     try {
-      const updated = await removeApi(api.id);
-      updateApiInList(updated);
+      await deleteExposedApi(api.id);
+      setApis((current) => current.filter((item) => item.id !== api.id));
+      setSelectedApi((current) => (current?.id === api.id ? null : current));
     } catch (err) {
       setError(err.message);
     } finally {
@@ -108,7 +108,7 @@ export default function ExposedApisPage() {
       <div className="page-header">
         <div>
           <h1>Exposed APIs</h1>
-          <p className="status-line"><span className="dot green" /> Active: {counts.active} <span className="dot orange" /> Stale: {counts.stale} <span className="dot red" /> Removed: {counts.removed}</p>
+          <p className="status-line"><span className="dot green" /> Active: {counts.active} <span className="dot orange" /> Stale: {counts.stale}</p>
         </div>
         <div className="header-actions">
           <Button variant="secondary" onClick={loadApis} disabled={loading}>⟳ Refresh</Button>
@@ -117,7 +117,7 @@ export default function ExposedApisPage() {
       </div>
       {usingSampleData ? <div className="notice">Showing sample data because backend is unavailable. {error}</div> : null}
       <ExposedApisFilters filters={filters} microservices={microservices} onChange={updateFilters} />
-      <ExposedApisTable apis={displayedApis} busyId={busyId} onToggleEnabled={handleToggleEnabled} onConfigure={setSelectedApi} onResetDefault={handleResetDefault} onRemove={handleRemove} />
+      <ExposedApisTable apis={displayedApis} busyId={busyId} onToggleEnabled={handleToggleEnabled} onConfigure={setSelectedApi} onResetDefault={handleResetDefault} onDelete={handleDelete} />
       <div className="table-footer"><span>Showing {displayedApis.length} of {apis.length} APIs</span><div><Button variant="ghost" disabled>Previous</Button><Button variant="ghost">Next</Button></div></div>
       <div className="insight-grid">
         <StatCard icon="✣" label="Drift Detected" value="12 APIs" tone="purple" meta="registered definitions may need sync" />

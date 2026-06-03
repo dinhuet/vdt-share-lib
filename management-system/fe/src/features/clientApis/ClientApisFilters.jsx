@@ -1,4 +1,5 @@
 import SearchInput from '../../components/SearchInput';
+import { SYNC_STATUSES } from '../../utils/constants';
 
 export default function ClientApisFilters({ filters, microservices, onChange }) {
   return (
@@ -19,11 +20,10 @@ export default function ClientApisFilters({ filters, microservices, onChange }) 
         </select>
       </label>
       <label>
-        <span>Deleted</span>
-        <select value={filters.deleted} onChange={(event) => onChange({ deleted: event.target.value })}>
-          <option value="active">Active only</option>
-          <option value="include">Include deleted</option>
-          <option value="deleted">Deleted only</option>
+        <span>Sync Status</span>
+        <select value={filters.syncStatus} onChange={(event) => onChange({ syncStatus: event.target.value })}>
+          <option value="">All Statuses</option>
+          {SYNC_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
         </select>
       </label>
       <label className="filter-search">

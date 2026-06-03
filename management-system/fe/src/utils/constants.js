@@ -4,7 +4,7 @@ export const ROUTES = {
   DEFAULT_CONFIGS: 'defaultConfigs',
 };
 
-export const SYNC_STATUSES = ['ACTIVE', 'STALE', 'REMOVED'];
+export const SYNC_STATUSES = ['ACTIVE', 'STALE'];
 
 export const HTTP_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
 
@@ -73,7 +73,7 @@ export const SAMPLE_APIS = [
     protocol: 'HTTP/1.1',
     enabled: false,
     useDefaultConfig: false,
-    syncStatus: 'REMOVED',
+    syncStatus: 'STALE',
     lastSyncedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
     maxRequests: 500,
     throttleWindowSec: 1,
@@ -190,7 +190,8 @@ export const SAMPLE_CLIENT_APIS = [
     failureAction: 'LOG_AND_FAIL',
     logRetentionDays: 30,
     enabled: true,
-    deleted: false,
+    syncStatus: 'ACTIVE',
+    lastSyncedAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
     updatedAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
   },
   {
@@ -209,7 +210,8 @@ export const SAMPLE_CLIENT_APIS = [
     failureAction: 'RETRY_THEN_ALERT',
     logRetentionDays: 14,
     enabled: true,
-    deleted: false,
+    syncStatus: 'ACTIVE',
+    lastSyncedAt: new Date(Date.now() - 35 * 60 * 1000).toISOString(),
     updatedAt: new Date(Date.now() - 35 * 60 * 1000).toISOString(),
   },
   {
@@ -228,8 +230,8 @@ export const SAMPLE_CLIENT_APIS = [
     failureAction: 'SKIP_OPTIONAL_CHECK',
     logRetentionDays: 7,
     enabled: false,
-    deleted: true,
-    deletedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    syncStatus: 'STALE',
+    lastSyncedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
     updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
   },
 ];

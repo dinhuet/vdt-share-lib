@@ -29,8 +29,8 @@ export function disableApi(id) {
   return apiRequest(`${BASE_PATH}/${id}/disable`, { method: 'PATCH' });
 }
 
-export function removeApi(id) {
-  return apiRequest(`${BASE_PATH}/${id}/remove`, { method: 'PATCH' });
+export function deleteExposedApi(id) {
+  return apiRequest(`${BASE_PATH}/${id}`, { method: 'DELETE' });
 }
 
 export function updateNotificationRule(id, notificationRuleId) {
