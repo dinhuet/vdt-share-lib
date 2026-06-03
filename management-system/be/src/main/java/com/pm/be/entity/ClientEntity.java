@@ -1,5 +1,6 @@
 package com.pm.be.entity;
 
+import com.pm.be.enums.ClientStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -31,9 +32,19 @@ public class ClientEntity {
     @Column(length = 255)
     String email;
 
+    @Enumerated(EnumType.STRING)
     @Column(length = 20)
     @Builder.Default
-    String status = "ACTIVE";
+    ClientStatus status = ClientStatus.ACTIVE;
+
+    @Column(name = "revoked_at")
+    LocalDateTime revokedAt;
+
+    @Column(name = "revoked_by", length = 255)
+    String revokedBy;
+
+    @Column(name = "revoke_reason", columnDefinition = "TEXT")
+    String revokeReason;
 
     @Column(name = "created_at")
     LocalDateTime createdAt;
