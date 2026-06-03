@@ -1,5 +1,6 @@
 package com.pm.be.entity;
 
+import com.pm.be.enums.SyncStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -68,12 +69,13 @@ public class ClientApiEntity {
     @Builder.Default
     Boolean enabled = true;
 
-    @Column(name = "is_deleted")
+    @Enumerated(EnumType.STRING)
+    @Column(name = "sync_status", length = 20)
     @Builder.Default
-    Boolean deleted = false;
+    SyncStatus syncStatus = SyncStatus.ACTIVE;
 
-    @Column(name = "deleted_at")
-    LocalDateTime deletedAt;
+    @Column(name = "last_synced_at")
+    LocalDateTime lastSyncedAt;
 
     @Column(name = "created_at")
     LocalDateTime createdAt;

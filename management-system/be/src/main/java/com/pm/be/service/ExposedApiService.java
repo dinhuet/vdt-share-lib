@@ -85,12 +85,13 @@ public class ExposedApiService {
         return saveAndSync(entity);
     }
 
-    public ExposedApiResponse remove(UUID id) {
+    public void delete(UUID id) {
         var entity = getEntity(id);
-        entity.setSyncStatus(SyncStatus.REMOVED);
-        entity.setEnabled(false);
-        entity.setUpdatedAt(LocalDateTime.now());
-        return saveAndSync(entity);
+        if (entity.getSyncStatus() != SyncStatus.STALE) {
+            throw new AppException(ErrorCode.EXPOSED_API_DELETE_NOT_ALLOWED);
+        }
+        exposedApiRedisSyncService.deleteApi(entity);
+        exposedApiRepo.delete(entity);
     }
 
     private ExposedApiResponse updateEnabled(UUID id, boolean enabled) {

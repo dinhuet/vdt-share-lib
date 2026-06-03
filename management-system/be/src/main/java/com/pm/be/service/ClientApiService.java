@@ -1,10 +1,10 @@
 package com.pm.be.service;
 
-import com.pm.be.dto.request.ClientApiCreateRequest;
 import com.pm.be.dto.request.ClientApiUpdateRequest;
 import com.pm.be.dto.response.ClientApiResponse;
 import com.pm.be.entity.ClientApiEntity;
 import com.pm.be.entity.MicroServiceEntity;
+import com.pm.be.enums.SyncStatus;
 import com.pm.be.exception.AppException;
 import com.pm.be.exception.ErrorCode;
 import com.pm.be.repository.ClientApiRepository;
@@ -19,6 +19,7 @@ import org.springframework.util.StringUtils;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -26,50 +27,18 @@ import java.util.UUID;
 @Transactional
 public class ClientApiService {
 
-    private static final int DEFAULT_TIMEOUT_MS = 30000;
-    private static final int DEFAULT_MAX_RETRIES = 3;
-    private static final int DEFAULT_RETRY_DELAY_MS = 1000;
-    private static final int DEFAULT_LOG_RETENTION_DAYS = 30;
-
     private final ClientApiRepository clientApiRepo;
     private final MicroServiceRepository microServiceRepo;
+    private final ClientApiRedisSyncService clientApiRedisSyncService;
 
-    public List<ClientApiResponse> getAll(UUID microServiceId, UUID clientId, Boolean enabled, boolean includeDeleted) {
-        return clientApiRepo.findAll(buildSpec(microServiceId, clientId, enabled, includeDeleted)).stream()
+    public List<ClientApiResponse> getAll(UUID microServiceId, UUID clientId, Boolean enabled, SyncStatus syncStatus) {
+        return clientApiRepo.findAll(buildSpec(microServiceId, clientId, enabled, syncStatus)).stream()
                 .map(this::toResponse)
                 .toList();
     }
 
     public ClientApiResponse getById(UUID id) {
         return toResponse(getEntity(id));
-    }
-
-    public ClientApiResponse create(ClientApiCreateRequest request) {
-        validateRequest(request.getMicroServiceId(), request.getName(), request.getProtocol());
-        validateSettings(request.getLatencyThresholdMs(), request.getTimeoutMs(), request.getMaxRetries(),
-                request.getRetryDelayMs(), request.getLogRetentionDays());
-
-        if (!microServiceRepo.existsById(request.getMicroServiceId())) {
-            throw new AppException(ErrorCode.MICROSERVICE_NOTFOUND);
-        }
-
-        var now = LocalDateTime.now();
-        var existing = clientApiRepo.findByMicroServiceIdAndName(request.getMicroServiceId(), request.getName());
-        if (existing.isPresent() && !Boolean.TRUE.equals(existing.get().getDeleted())) {
-            throw new AppException(ErrorCode.CLIENT_API_EXISTED);
-        }
-
-        var entity = existing.orElseGet(() -> {
-            var newEntity = new ClientApiEntity();
-            newEntity.setCreatedAt(now);
-            return newEntity;
-        });
-        applyCreateRequest(entity, request);
-        entity.setDeleted(false);
-        entity.setDeletedAt(null);
-        entity.setUpdatedAt(now);
-
-        return toResponse(clientApiRepo.save(entity));
     }
 
     public ClientApiResponse update(UUID id, ClientApiUpdateRequest request) {
@@ -81,7 +50,9 @@ public class ClientApiService {
             throw new AppException(ErrorCode.MICROSERVICE_NOTFOUND);
         }
 
-        var entity = getActiveEntity(id);
+        var entity = getEntity(id);
+        var oldMicroServiceId = entity.getMicroServiceId();
+        var oldName = entity.getName();
         clientApiRepo.findByMicroServiceIdAndName(request.getMicroServiceId(), request.getName())
                 .filter(existing -> !existing.getId().equals(id))
                 .ifPresent(existing -> {
@@ -91,7 +62,10 @@ public class ClientApiService {
         applyUpdateRequest(entity, request);
         entity.setUpdatedAt(LocalDateTime.now());
 
-        return toResponse(clientApiRepo.save(entity));
+        var saved = clientApiRepo.save(entity);
+        deleteOldRedisKeyIfChanged(oldMicroServiceId, oldName, saved);
+        clientApiRedisSyncService.syncApi(saved);
+        return toResponse(saved);
     }
 
     public ClientApiResponse enable(UUID id) {
@@ -103,32 +77,21 @@ public class ClientApiService {
     }
 
     public void delete(UUID id) {
-        var entity = getActiveEntity(id);
-        var now = LocalDateTime.now();
-        entity.setDeleted(true);
-        entity.setDeletedAt(now);
-        entity.setEnabled(false);
-        entity.setUpdatedAt(now);
-        clientApiRepo.save(entity);
-    }
-
-    public ClientApiResponse restore(UUID id) {
         var entity = getEntity(id);
-        if (!Boolean.TRUE.equals(entity.getDeleted())) {
-            return toResponse(entity);
+        if (entity.getSyncStatus() != SyncStatus.STALE) {
+            throw new AppException(ErrorCode.CLIENT_API_DELETE_NOT_ALLOWED);
         }
-
-        entity.setDeleted(false);
-        entity.setDeletedAt(null);
-        entity.setUpdatedAt(LocalDateTime.now());
-        return toResponse(clientApiRepo.save(entity));
+        clientApiRedisSyncService.deleteApi(entity);
+        clientApiRepo.delete(entity);
     }
 
     private ClientApiResponse updateEnabled(UUID id, boolean enabled) {
-        var entity = getActiveEntity(id);
+        var entity = getEntity(id);
         entity.setEnabled(enabled);
         entity.setUpdatedAt(LocalDateTime.now());
-        return toResponse(clientApiRepo.save(entity));
+        var saved = clientApiRepo.save(entity);
+        clientApiRedisSyncService.syncApi(saved);
+        return toResponse(saved);
     }
 
     private ClientApiEntity getEntity(UUID id) {
@@ -136,22 +99,9 @@ public class ClientApiService {
                 .orElseThrow(() -> new AppException(ErrorCode.CLIENT_API_NOTFOUND));
     }
 
-    private ClientApiEntity getActiveEntity(UUID id) {
-        var entity = getEntity(id);
-        if (Boolean.TRUE.equals(entity.getDeleted())) {
-            throw new AppException(ErrorCode.CLIENT_API_NOTFOUND);
-        }
-        return entity;
-    }
-
-    private Specification<ClientApiEntity> buildSpec(UUID microServiceId, UUID clientId, Boolean enabled, boolean includeDeleted) {
+    private Specification<ClientApiEntity> buildSpec(UUID microServiceId, UUID clientId, Boolean enabled, SyncStatus syncStatus) {
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
-            if (!includeDeleted) {
-                predicates.add(criteriaBuilder.or(
-                        criteriaBuilder.isFalse(root.get("deleted")),
-                        criteriaBuilder.isNull(root.get("deleted"))));
-            }
             if (microServiceId != null) {
                 predicates.add(criteriaBuilder.equal(root.get("microServiceId"), microServiceId));
             }
@@ -160,6 +110,9 @@ public class ClientApiService {
             }
             if (enabled != null) {
                 predicates.add(criteriaBuilder.equal(root.get("enabled"), enabled));
+            }
+            if (syncStatus != null) {
+                predicates.add(criteriaBuilder.equal(root.get("syncStatus"), syncStatus));
             }
             return criteriaBuilder.and(predicates.toArray(Predicate[]::new));
         };
@@ -186,23 +139,6 @@ public class ClientApiService {
         }
     }
 
-    private void applyCreateRequest(ClientApiEntity entity, ClientApiCreateRequest request) {
-        entity.setMicroServiceId(request.getMicroServiceId());
-        entity.setClientId(request.getClientId());
-        entity.setName(request.getName());
-        entity.setDestinationUrl(request.getDestinationUrl());
-        entity.setMethod(request.getMethod());
-        entity.setProtocol(request.getProtocol());
-        entity.setLatencyThresholdMs(request.getLatencyThresholdMs());
-        entity.setTimeoutMs(request.getTimeoutMs() != null ? request.getTimeoutMs() : DEFAULT_TIMEOUT_MS);
-        entity.setMaxRetries(request.getMaxRetries() != null ? request.getMaxRetries() : DEFAULT_MAX_RETRIES);
-        entity.setRetryDelayMs(request.getRetryDelayMs() != null ? request.getRetryDelayMs() : DEFAULT_RETRY_DELAY_MS);
-        entity.setFailureAction(request.getFailureAction());
-        entity.setLogRetentionDays(request.getLogRetentionDays() != null ? request.getLogRetentionDays() : DEFAULT_LOG_RETENTION_DAYS);
-        entity.setNotificationRuleId(request.getNotificationRuleId());
-        entity.setEnabled(request.getEnabled() != null ? request.getEnabled() : true);
-    }
-
     private void applyUpdateRequest(ClientApiEntity entity, ClientApiUpdateRequest request) {
         entity.setMicroServiceId(request.getMicroServiceId());
         entity.setClientId(request.getClientId());
@@ -218,6 +154,12 @@ public class ClientApiService {
         entity.setLogRetentionDays(request.getLogRetentionDays());
         entity.setNotificationRuleId(request.getNotificationRuleId());
         entity.setEnabled(request.getEnabled() != null ? request.getEnabled() : entity.getEnabled());
+    }
+
+    private void deleteOldRedisKeyIfChanged(UUID oldMicroServiceId, String oldName, ClientApiEntity saved) {
+        if (!Objects.equals(oldMicroServiceId, saved.getMicroServiceId()) || !Objects.equals(oldName, saved.getName())) {
+            clientApiRedisSyncService.deleteApi(oldMicroServiceId, oldName);
+        }
     }
 
     private ClientApiResponse toResponse(ClientApiEntity entity) {
@@ -238,8 +180,8 @@ public class ClientApiService {
                 .logRetentionDays(entity.getLogRetentionDays())
                 .notificationRuleId(entity.getNotificationRuleId())
                 .enabled(entity.getEnabled())
-                .deleted(Boolean.TRUE.equals(entity.getDeleted()))
-                .deletedAt(entity.getDeletedAt())
+                .syncStatus(entity.getSyncStatus())
+                .lastSyncedAt(entity.getLastSyncedAt())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .build();

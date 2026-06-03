@@ -74,10 +74,9 @@ public class ExposedApiController {
                 .build();
     }
 
-    @PatchMapping("/{id}/remove")
-    public ApiResponse<ExposedApiResponse> remove(@PathVariable UUID id) {
-        return ApiResponse.<ExposedApiResponse>builder()
-                .result(exposedApiService.remove(id))
-                .build();
+    @DeleteMapping("/{id}")
+    public ApiResponse<Void> delete(@PathVariable UUID id) {
+        exposedApiService.delete(id);
+        return ApiResponse.<Void>builder().build();
     }
 }

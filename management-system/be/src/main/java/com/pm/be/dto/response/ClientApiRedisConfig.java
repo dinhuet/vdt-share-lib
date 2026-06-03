@@ -1,8 +1,10 @@
-package com.pm.be.dto.request;
+package com.pm.be.dto.response;
 
+import com.pm.be.enums.SyncStatus;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Data
@@ -10,10 +12,12 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class ClientApiCreateRequest {
+public class ClientApiRedisConfig {
+    UUID id;
     UUID microServiceId;
+    String serviceName;
     UUID clientId;
-    String name;
+    String apiName;
     String destinationUrl;
     String method;
     String protocol;
@@ -25,4 +29,7 @@ public class ClientApiCreateRequest {
     Integer logRetentionDays;
     UUID notificationRuleId;
     Boolean enabled;
+    SyncStatus syncStatus;
+    LocalDateTime lastSyncedAt;
+    LocalDateTime updatedAt;
 }

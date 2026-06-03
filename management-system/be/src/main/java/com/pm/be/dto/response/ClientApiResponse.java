@@ -1,5 +1,6 @@
 package com.pm.be.dto.response;
 
+import com.pm.be.enums.SyncStatus;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -28,8 +29,8 @@ public class ClientApiResponse {
     Integer logRetentionDays;
     UUID notificationRuleId;
     Boolean enabled;
-    Boolean deleted;
-    LocalDateTime deletedAt;
+    SyncStatus syncStatus;
+    LocalDateTime lastSyncedAt;
     LocalDateTime createdAt;
     LocalDateTime updatedAt;
 }

@@ -1,9 +1,9 @@
 package com.pm.be.controller;
 
-import com.pm.be.dto.request.ClientApiCreateRequest;
 import com.pm.be.dto.request.ClientApiUpdateRequest;
 import com.pm.be.dto.response.ApiResponse;
 import com.pm.be.dto.response.ClientApiResponse;
+import com.pm.be.enums.SyncStatus;
 import com.pm.be.service.ClientApiService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -23,9 +23,9 @@ public class ClientApiController {
             @RequestParam(required = false) UUID microServiceId,
             @RequestParam(required = false) UUID clientId,
             @RequestParam(required = false) Boolean enabled,
-            @RequestParam(defaultValue = "false") boolean includeDeleted) {
+            @RequestParam(required = false) SyncStatus syncStatus) {
         return ApiResponse.<List<ClientApiResponse>>builder()
-                .result(clientApiService.getAll(microServiceId, clientId, enabled, includeDeleted))
+                .result(clientApiService.getAll(microServiceId, clientId, enabled, syncStatus))
                 .build();
     }
 
@@ -33,13 +33,6 @@ public class ClientApiController {
     public ApiResponse<ClientApiResponse> getById(@PathVariable UUID id) {
         return ApiResponse.<ClientApiResponse>builder()
                 .result(clientApiService.getById(id))
-                .build();
-    }
-
-    @PostMapping
-    public ApiResponse<ClientApiResponse> create(@RequestBody ClientApiCreateRequest request) {
-        return ApiResponse.<ClientApiResponse>builder()
-                .result(clientApiService.create(request))
                 .build();
     }
 
@@ -68,12 +61,5 @@ public class ClientApiController {
     public ApiResponse<Void> delete(@PathVariable UUID id) {
         clientApiService.delete(id);
         return ApiResponse.<Void>builder().build();
-    }
-
-    @PatchMapping("/{id}/restore")
-    public ApiResponse<ClientApiResponse> restore(@PathVariable UUID id) {
-        return ApiResponse.<ClientApiResponse>builder()
-                .result(clientApiService.restore(id))
-                .build();
     }
 }

@@ -20,6 +20,8 @@ public enum ErrorCode {
     CLIENT_API_NOTFOUND(1016, "Client API not found"),
     CLIENT_API_INVALID(1017, "Client API invalid"),
     CLIENT_API_EXISTED(1018, "Client API already exists"),
+    EXPOSED_API_DELETE_NOT_ALLOWED(1019, "Only stale exposed APIs can be deleted"),
+    CLIENT_API_DELETE_NOT_ALLOWED(1020, "Only stale client APIs can be deleted"),
 
     ;
 

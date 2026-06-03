@@ -27,6 +27,7 @@ public class SyncRegistrationService {
     private final ClientApiRepository clientApiRepo;
     private final ApiDefaultConfigResolver apiDefaultConfigResolver;
     private final ExposedApiRedisSyncService exposedApiRedisSyncService;
+    private final ClientApiRedisSyncService clientApiRedisSyncService;
 
     public void sync(String serviceName, String serviceUrl,
                       java.util.List<ExposedApiInfo> exposedApis,
@@ -60,6 +61,14 @@ public class SyncRegistrationService {
         exposedApiRepo.saveAll(existingApis);
         exposedApiRedisSyncService.syncAll(existingApis);
 
+        var existingClientApis = clientApiRepo.findByMicroServiceId(savedService.getId());
+        for (var existingClientApi : existingClientApis) {
+            existingClientApi.setSyncStatus(SyncStatus.STALE);
+            existingClientApi.setUpdatedAt(now);
+        }
+        clientApiRepo.saveAll(existingClientApis);
+        clientApiRedisSyncService.syncAll(existingClientApis);
+
         if (exposedApis != null) {
             for (var api : exposedApis) {
                 var existingEntity = exposedApiRepo.findByMicroServiceIdAndName(savedService.getId(), api.name());
@@ -88,23 +97,24 @@ public class SyncRegistrationService {
 
         if (clientApis != null) {
             for (var api : clientApis) {
-                var entity = clientApiRepo
-                        .findByMicroServiceIdAndName(savedService.getId(), api.name())
+                var existingEntity = clientApiRepo.findByMicroServiceIdAndName(savedService.getId(), api.name());
+                var entity = existingEntity
                         .orElseGet(() -> {
                             var e = new ClientApiEntity();
                             e.setMicroServiceId(savedService.getId());
                             e.setName(api.name());
+                            e.setEnabled(true);
                             e.setCreatedAt(now);
                             return e;
                         });
                 entity.setDestinationUrl(api.destinationUrl());
                 entity.setMethod(api.method());
                 entity.setProtocol(api.protocol());
-                entity.setEnabled(true);
-                entity.setDeleted(false);
-                entity.setDeletedAt(null);
+                entity.setSyncStatus(SyncStatus.ACTIVE);
+                entity.setLastSyncedAt(now);
                 entity.setUpdatedAt(now);
-                clientApiRepo.save(entity);
+                var savedClientApi = clientApiRepo.save(entity);
+                clientApiRedisSyncService.syncApi(savedClientApi);
                 log.info("Upserted client_api: {}", api.name());
             }
         }
