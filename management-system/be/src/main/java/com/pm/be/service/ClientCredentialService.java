@@ -40,6 +40,7 @@ public class ClientCredentialService {
     private final ClientRepository clientRepo;
     private final MicroServiceRepository microServiceRepo;
     private final CredentialSecretService credentialSecretService;
+    private final ClientCredentialRedisSyncService clientCredentialRedisSyncService;
 
     public List<ClientCredentialResponse> getAll(UUID clientId, UUID microServiceId) {
         var client = getClient(clientId);
@@ -82,6 +83,7 @@ public class ClientCredentialService {
                 .build();
 
         var saved = credentialRepo.save(entity);
+        clientCredentialRedisSyncService.syncCredential(saved);
         return new ClientCredentialCreatedResponse(toResponse(saved, client, microService), apiKey, signingSecret);
     }
 
@@ -103,6 +105,7 @@ public class ClientCredentialService {
         entity.setUpdatedAt(now);
 
         var saved = credentialRepo.save(entity);
+        clientCredentialRedisSyncService.syncCredential(saved);
         return toResponse(saved, client, resolveMicroService(saved.getMicroServiceId()));
     }
 
