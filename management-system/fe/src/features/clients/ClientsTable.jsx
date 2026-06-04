@@ -6,7 +6,7 @@ import { clientStatusTone } from './clients.helpers';
 
 const columns = ['Client', 'Code', 'Email', 'Status', 'Revoked', 'Updated', 'Actions'];
 
-export default function ClientsTable({ clients, busyId, onEdit, onCredentials, onActivate, onDeactivate, onRevoke, onDelete }) {
+export default function ClientsTable({ clients, busyId, onEdit, onCredentials, onPermissions, onActivate, onDeactivate, onRevoke, onDelete }) {
   return (
     <DataTable
       columns={columns}
@@ -27,6 +27,7 @@ export default function ClientsTable({ clients, busyId, onEdit, onCredentials, o
               <div className="row-actions">
                 <Button variant="ghost" disabled={busyId === client.id || revoked} onClick={() => onEdit(client)}>Edit</Button>
                 <Button variant="ghost" disabled={busyId === client.id || revoked} onClick={() => onCredentials(client)}>Credentials</Button>
+                <Button variant="ghost" disabled={busyId === client.id || revoked} onClick={() => onPermissions(client)}>Permissions</Button>
                 {client.status === 'ACTIVE' ? (
                   <Button variant="ghost" disabled={busyId === client.id} onClick={() => onDeactivate(client)}>Deactivate</Button>
                 ) : (
