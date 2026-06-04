@@ -32,6 +32,9 @@ public enum ErrorCode {
     CLIENT_CREDENTIAL_INVALID(1028, "Client credential invalid"),
     CLIENT_CREDENTIAL_REVOKE_NOT_ALLOWED(1029, "Only active client credentials can be revoked"),
     CLIENT_CREDENTIAL_SECRET_INVALID(1030, "Client credential secret invalid"),
+    ACCESS_POLICY_NOTFOUND(1031, "Access policy not found"),
+    ACCESS_POLICY_INVALID(1032, "Access policy invalid"),
+    ACCESS_POLICY_EXISTED(1033, "Access policy already exists"),
 
     ;
 

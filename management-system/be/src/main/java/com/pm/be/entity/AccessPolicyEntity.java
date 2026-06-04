@@ -1,5 +1,7 @@
 package com.pm.be.entity;
 
+import com.pm.be.enums.AccessPolicyMatchType;
+import com.pm.be.enums.AccessPolicyType;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -24,11 +26,13 @@ public class AccessPolicyEntity {
     @Column(name = "exposed_api_id", nullable = false)
     UUID exposedApiId;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    String type;
+    AccessPolicyType type;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "match_type", nullable = false, length = 20)
-    String matchType;
+    AccessPolicyMatchType matchType;
 
     @Column(name = "match_value", nullable = false, length = 255)
     String matchValue;
