@@ -1,4 +1,5 @@
 import DefaultConfigsPage from '../features/defaultConfigs/DefaultConfigsPage';
+import AccessPoliciesPage from '../features/accessPolicies/AccessPoliciesPage';
 import ClientApisPage from '../features/clientApis/ClientApisPage';
 import ClientsPage from '../features/clients/ClientsPage';
 import ExposedApisPage from '../features/exposedApis/ExposedApisPage';
@@ -15,6 +16,10 @@ export default function AppRoutes({ activeRoute }) {
 
   if (activeRoute === ROUTES.DEFAULT_CONFIGS) {
     return <DefaultConfigsPage />;
+  }
+
+  if (activeRoute === ROUTES.ACCESS_POLICIES) {
+    return <AccessPoliciesPage />;
   }
 
   return <ExposedApisPage />;

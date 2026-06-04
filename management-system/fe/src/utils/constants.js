@@ -3,6 +3,7 @@ export const ROUTES = {
   SHARED_APIS: 'sharedApis',
   CLIENT_APIS: 'clientApis',
   DEFAULT_CONFIGS: 'defaultConfigs',
+  ACCESS_POLICIES: 'accessPolicies',
 };
 
 export const CLIENT_STATUSES = ['ACTIVE', 'INACTIVE', 'REVOKED'];

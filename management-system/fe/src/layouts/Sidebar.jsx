@@ -6,7 +6,7 @@ const navItems = [
   ['Shared APIs', '✥', ROUTES.SHARED_APIS],
   ['Client APIs', '▱', ROUTES.CLIENT_APIS],
   ['Default Configs', '⚙', ROUTES.DEFAULT_CONFIGS],
-  ['Security Policies', '⬟', 'disabled-security'],
+  ['Security Policies', '⬟', ROUTES.ACCESS_POLICIES],
   ['Rate Limit', '◴', 'disabled-rate'],
   ['Access Control', '⬡', 'disabled-access'],
   ['Logs', '▤', 'disabled-logs'],
