@@ -30,6 +30,7 @@ public class ClientPermissionService {
     private final ClientRepository clientRepo;
     private final ExposedApiRepository exposedApiRepo;
     private final MicroServiceRepository microServiceRepo;
+    private final ClientPermissionRedisSyncService clientPermissionRedisSyncService;
 
     public List<ClientPermissionResponse> getByClient(UUID clientId) {
         var client = getClient(clientId);
@@ -57,7 +58,9 @@ public class ClientPermissionService {
                 .createdAt(now)
                 .updatedAt(now)
                 .build();
-        return toResponse(permissionRepo.save(entity), client, exposedApi);
+        var saved = permissionRepo.save(entity);
+        clientPermissionRedisSyncService.syncPermission(saved);
+        return toResponse(saved, client, exposedApi);
     }
 
     public ClientPermissionResponse enable(UUID clientId, UUID permissionId) {
@@ -67,6 +70,7 @@ public class ClientPermissionService {
         entity.setEnabled(true);
         entity.setUpdatedAt(LocalDateTime.now());
         var saved = permissionRepo.save(entity);
+        clientPermissionRedisSyncService.syncPermission(saved);
         return toResponse(saved, client, resolveExposedApi(saved.getExposedApiId()));
     }
 
@@ -76,12 +80,15 @@ public class ClientPermissionService {
         entity.setEnabled(false);
         entity.setUpdatedAt(LocalDateTime.now());
         var saved = permissionRepo.save(entity);
+        clientPermissionRedisSyncService.syncPermission(saved);
         return toResponse(saved, client, resolveExposedApi(saved.getExposedApiId()));
     }
 
     public void delete(UUID clientId, UUID permissionId) {
         getClient(clientId);
-        permissionRepo.delete(getPermission(clientId, permissionId));
+        var entity = getPermission(clientId, permissionId);
+        permissionRepo.delete(entity);
+        clientPermissionRedisSyncService.deletePermission(entity);
     }
 
     private ClientEntity getClient(UUID clientId) {
