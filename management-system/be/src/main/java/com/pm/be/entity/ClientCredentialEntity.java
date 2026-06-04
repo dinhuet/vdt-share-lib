@@ -15,7 +15,7 @@ import java.util.UUID;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Entity
 @Table(name = "client_credential", uniqueConstraints = {
-        @UniqueConstraint(name = "uk_client_credential_client_service_key", columnNames = {"client_id", "micro_service_id", "key_id"}),
+        @UniqueConstraint(name = "uk_client_credential_key_id", columnNames = {"key_id"}),
         @UniqueConstraint(name = "uk_client_credential_api_key_hash", columnNames = {"api_key_hash"})
 })
 public class ClientCredentialEntity {

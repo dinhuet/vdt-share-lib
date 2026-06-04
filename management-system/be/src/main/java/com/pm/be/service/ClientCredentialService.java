@@ -33,6 +33,8 @@ import java.util.UUID;
 public class ClientCredentialService {
     private static final String DEFAULT_ALGORITHM = "HMAC-SHA256";
     private static final int EXPIRING_SOON_DAYS = 7;
+    private static final int KEY_ID_RANDOM_LENGTH = 8;
+    private static final int KEY_ID_GENERATE_MAX_ATTEMPTS = 10;
 
     private final ClientCredentialRepository credentialRepo;
     private final ClientRepository clientRepo;
@@ -59,7 +61,7 @@ public class ClientCredentialService {
                 .orElseThrow(() -> new AppException(ErrorCode.MICROSERVICE_NOTFOUND));
 
         String keyId = resolveKeyId(request.getKeyId());
-        if (credentialRepo.existsByClientIdAndMicroServiceIdAndKeyId(clientId, request.getMicroServiceId(), keyId)) {
+        if (credentialRepo.existsByKeyId(keyId)) {
             throw new AppException(ErrorCode.CLIENT_CREDENTIAL_EXISTED);
         }
 
@@ -135,7 +137,13 @@ public class ClientCredentialService {
         if (StringUtils.hasText(keyId)) {
             return keyId.trim();
         }
-        return "key-" + UUID.randomUUID().toString().substring(0, 8);
+        for (int attempt = 0; attempt < KEY_ID_GENERATE_MAX_ATTEMPTS; attempt++) {
+            String generatedKeyId = "key-" + UUID.randomUUID().toString().substring(0, KEY_ID_RANDOM_LENGTH);
+            if (!credentialRepo.existsByKeyId(generatedKeyId)) {
+                return generatedKeyId;
+            }
+        }
+        throw new AppException(ErrorCode.CLIENT_CREDENTIAL_EXISTED);
     }
 
     private CredentialExpiryState resolveExpiryState(ClientCredentialEntity entity) {
