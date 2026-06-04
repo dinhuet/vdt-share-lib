@@ -35,6 +35,9 @@ public enum ErrorCode {
     ACCESS_POLICY_NOTFOUND(1031, "Access policy not found"),
     ACCESS_POLICY_INVALID(1032, "Access policy invalid"),
     ACCESS_POLICY_EXISTED(1033, "Access policy already exists"),
+    CLIENT_PERMISSION_NOTFOUND(1034, "Client permission not found"),
+    CLIENT_PERMISSION_INVALID(1035, "Client permission invalid"),
+    CLIENT_PERMISSION_EXISTED(1036, "Client permission already exists"),
 
     ;
 
