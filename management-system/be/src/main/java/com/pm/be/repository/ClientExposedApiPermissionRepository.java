@@ -12,5 +12,9 @@ public interface ClientExposedApiPermissionRepository extends JpaRepository<Clie
 
     List<ClientExposedApiPermissionEntity> findByClientId(UUID clientId);
 
+    List<ClientExposedApiPermissionEntity> findByExposedApiId(UUID exposedApiId);
+
+    boolean existsByClientIdAndExposedApiId(UUID clientId, UUID exposedApiId);
+
     boolean existsByClientIdAndExposedApiIdAndEnabled(UUID clientId, UUID exposedApiId, Boolean enabled);
 }
