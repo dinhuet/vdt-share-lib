@@ -31,6 +31,7 @@ public class AccessPolicyService {
     private final AccessPolicyRepository accessPolicyRepo;
     private final ExposedApiRepository exposedApiRepo;
     private final ClientRepository clientRepo;
+    private final AccessPolicyRedisSyncService accessPolicyRedisSyncService;
 
     public List<AccessPolicyResponse> getAll(UUID exposedApiId) {
         ensureExposedApiExists(exposedApiId);
@@ -61,7 +62,9 @@ public class AccessPolicyService {
                 .createdBy(resolveCurrentUser())
                 .createdAt(now)
                 .build();
-        return toResponse(accessPolicyRepo.save(entity));
+        var saved = accessPolicyRepo.save(entity);
+        accessPolicyRedisSyncService.syncByExposedApiId(exposedApiId);
+        return toResponse(saved);
     }
 
     public AccessPolicyResponse update(UUID exposedApiId, UUID policyId, AccessPolicyUpsertRequest request) {
@@ -83,12 +86,15 @@ public class AccessPolicyService {
         entity.setMatchValue(matchValue);
         entity.setTemporary(temporary);
         entity.setExpiresAt(temporary ? request.getExpiresAt() : null);
-        return toResponse(accessPolicyRepo.save(entity));
+        var saved = accessPolicyRepo.save(entity);
+        accessPolicyRedisSyncService.syncByExposedApiId(exposedApiId);
+        return toResponse(saved);
     }
 
     public void delete(UUID exposedApiId, UUID policyId) {
         ensureExposedApiExists(exposedApiId);
         accessPolicyRepo.delete(getPolicy(exposedApiId, policyId));
+        accessPolicyRedisSyncService.syncByExposedApiId(exposedApiId);
     }
 
     private AccessPolicyEntity getPolicy(UUID exposedApiId, UUID policyId) {
