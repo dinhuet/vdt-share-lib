@@ -1,9 +1,13 @@
 package com.pm.sharedlib.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.pm.sharedlib.endpoint.EndpointManifestStore;
+import com.pm.sharedlib.endpoint.EndpointRegistry;
+import com.pm.sharedlib.endpoint.EndpointScanner;
 import com.pm.sharedlib.kafka.RegistrationEventProducer;
 import com.pm.sharedlib.service.RegistrationService;
 import org.springframework.beans.factory.ListableBeanFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -11,6 +15,9 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.Environment;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
+
+import java.nio.file.Path;
 
 @AutoConfiguration
 @ConditionalOnProperty(prefix = "vdt.share", name = "enabled", havingValue = "true")
@@ -32,10 +39,36 @@ public class VdtShareAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public RegistrationService registrationService(
+    public EndpointManifestStore endpointManifestStore(
+            ObjectMapper objectMapper,
+            VdtShareProperties properties,
+            Environment environment) {
+        var path = environment.resolvePlaceholders(properties.getEndpointManifestPath());
+        return new EndpointManifestStore(objectMapper, Path.of(path));
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public EndpointScanner endpointScanner(
             ListableBeanFactory beanFactory,
+            ObjectProvider<RequestMappingHandlerMapping> requestMappingHandlerMapping) {
+        return new EndpointScanner(beanFactory, requestMappingHandlerMapping);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public EndpointRegistry endpointRegistry(
+            EndpointScanner endpointScanner,
+            EndpointManifestStore endpointManifestStore) {
+        return new EndpointRegistry(endpointScanner, endpointManifestStore);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public RegistrationService registrationService(
+            EndpointRegistry endpointRegistry,
             RegistrationEventProducer producer,
             Environment environment) {
-        return new RegistrationService(beanFactory, producer, environment);
+        return new RegistrationService(endpointRegistry, producer, environment);
     }
 }

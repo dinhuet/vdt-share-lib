@@ -9,7 +9,7 @@
         <outputRelativeToContentRoot value="true" />
         <module name="vdt-demo" />
       </profile>
-      <profile name="Annotation profile for be" enabled="true">
+      <profile name="Annotation profile for shared-lib" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />

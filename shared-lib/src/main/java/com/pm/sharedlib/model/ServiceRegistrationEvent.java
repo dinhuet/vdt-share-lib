@@ -4,6 +4,7 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.util.List;
+import java.util.UUID;
 
 @Data
 @Builder
@@ -23,9 +24,12 @@ public class ServiceRegistrationEvent {
     @AllArgsConstructor
     @FieldDefaults(level = AccessLevel.PRIVATE)
     public static class ApiInfo {
+        UUID endpointId;
+        String endpointKey;
         String name;
         String path;
         String destinationUrl;
+        String topic;
         String method;
         String protocol;
     }
