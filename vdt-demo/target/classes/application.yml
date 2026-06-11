@@ -6,3 +6,6 @@ server:
 vdt:
   share:
     enabled: true
+    runtime:
+      http-filter-enabled: true
+      fail-open: false

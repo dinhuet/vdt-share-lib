@@ -15,6 +15,7 @@ public class VdtShareProperties {
     @Data
     @FieldDefaults(level = lombok.AccessLevel.PRIVATE)
     public static class Runtime {
+        boolean httpFilterEnabled = true;
         boolean failOpen = false;
         String exposedApiKeyPrefix = "vdt:exposed-api";
         String accessPolicyKeyPrefix = "vdt:access-policy";

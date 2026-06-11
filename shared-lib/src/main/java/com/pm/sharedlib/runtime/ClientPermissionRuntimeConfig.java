@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Data
@@ -26,6 +27,6 @@ public class ClientPermissionRuntimeConfig {
     String path;
     String protocol;
     Boolean enabled;
-    String createdAt;
-    String updatedAt;
+    LocalDateTime createdAt;
+    LocalDateTime updatedAt;
 }

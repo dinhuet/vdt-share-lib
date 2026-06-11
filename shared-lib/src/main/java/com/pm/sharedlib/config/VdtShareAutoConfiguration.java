@@ -1,6 +1,7 @@
 package com.pm.sharedlib.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.pm.sharedlib.endpoint.EndpointManifestStore;
 import com.pm.sharedlib.endpoint.EndpointRegistry;
 import com.pm.sharedlib.endpoint.EndpointScanner;
@@ -8,6 +9,7 @@ import com.pm.sharedlib.kafka.RegistrationEventProducer;
 import com.pm.sharedlib.runtime.AccessPolicyEvaluator;
 import com.pm.sharedlib.runtime.ClientAuthService;
 import com.pm.sharedlib.runtime.ClientPermissionChecker;
+import com.pm.sharedlib.runtime.SecurityAuthFilter;
 import com.pm.sharedlib.runtime.SecuritySettingsStore;
 import com.pm.sharedlib.service.RegistrationService;
 import org.springframework.beans.factory.ListableBeanFactory;
@@ -32,7 +34,7 @@ public class VdtShareAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     ObjectMapper objectMapper() {
-        return new ObjectMapper();
+        return new ObjectMapper().registerModule(new JavaTimeModule());
     }
 
     @Bean
@@ -93,6 +95,27 @@ public class VdtShareAutoConfiguration {
     @ConditionalOnMissingBean
     public ClientPermissionChecker clientPermissionChecker(SecuritySettingsStore securitySettingsStore) {
         return new ClientPermissionChecker(securitySettingsStore);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnProperty(prefix = "vdt.share.runtime", name = "http-filter-enabled", havingValue = "true", matchIfMissing = true)
+    public SecurityAuthFilter securityAuthFilter(
+            EndpointRegistry endpointRegistry,
+            SecuritySettingsStore securitySettingsStore,
+            AccessPolicyEvaluator accessPolicyEvaluator,
+            ClientAuthService clientAuthService,
+            ClientPermissionChecker clientPermissionChecker,
+            VdtShareProperties properties,
+            ObjectMapper objectMapper) {
+        return new SecurityAuthFilter(
+                endpointRegistry,
+                securitySettingsStore,
+                accessPolicyEvaluator,
+                clientAuthService,
+                clientPermissionChecker,
+                properties,
+                objectMapper);
     }
 
     @Bean

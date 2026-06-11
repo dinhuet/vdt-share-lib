@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Data
@@ -25,10 +26,10 @@ public class ClientCredentialRuntimeConfig {
     String signingSecretEncrypted;
     String algorithm;
     String status;
-    String expiresAt;
-    String revokedAt;
+    LocalDateTime expiresAt;
+    LocalDateTime revokedAt;
     String revokedBy;
     String revokeReason;
-    String createdAt;
-    String updatedAt;
+    LocalDateTime createdAt;
+    LocalDateTime updatedAt;
 }

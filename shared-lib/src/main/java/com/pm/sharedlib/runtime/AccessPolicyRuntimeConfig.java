@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Data
@@ -20,7 +21,7 @@ public class AccessPolicyRuntimeConfig {
     String matchType;
     String matchValue;
     Boolean temporary;
-    String expiresAt;
+    LocalDateTime expiresAt;
     String createdBy;
-    String createdAt;
+    LocalDateTime createdAt;
 }

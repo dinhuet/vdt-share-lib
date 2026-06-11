@@ -54,10 +54,10 @@ public class AccessPolicyEvaluator {
         if (!Boolean.TRUE.equals(policy.getTemporary())) {
             return true;
         }
-        if (!StringUtils.hasText(policy.getExpiresAt())) {
+        if (policy.getExpiresAt() == null) {
             return false;
         }
-        return LocalDateTime.parse(policy.getExpiresAt()).isAfter(LocalDateTime.now());
+        return policy.getExpiresAt().isAfter(LocalDateTime.now());
     }
 
     private boolean matchesCidr(String sourceIp, String cidr) {

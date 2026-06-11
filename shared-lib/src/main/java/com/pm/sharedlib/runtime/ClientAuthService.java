@@ -62,7 +62,7 @@ public class ClientAuthService {
         if (!ACTIVE.equalsIgnoreCase(credential.getStatus())) {
             throw unauthorized(RuntimeSecurityErrorCodes.AUTH_CREDENTIAL_INACTIVE, "Client credential is not active");
         }
-        if (StringUtils.hasText(credential.getRevokedAt())) {
+        if (credential.getRevokedAt() != null) {
             throw unauthorized(RuntimeSecurityErrorCodes.AUTH_CREDENTIAL_INACTIVE, "Client credential was revoked");
         }
         if (isExpired(credential.getExpiresAt())) {
@@ -70,11 +70,11 @@ public class ClientAuthService {
         }
     }
 
-    private boolean isExpired(String expiresAt) {
-        if (!StringUtils.hasText(expiresAt)) {
+    private boolean isExpired(LocalDateTime expiresAt) {
+        if (expiresAt == null) {
             return false;
         }
-        return !LocalDateTime.parse(expiresAt).isAfter(LocalDateTime.now());
+        return !expiresAt.isAfter(LocalDateTime.now());
     }
 
     private void validateApiKey(String apiKey, ClientCredentialRuntimeConfig credential) {
