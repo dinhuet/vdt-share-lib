@@ -11,6 +11,8 @@ import java.util.UUID;
 public interface ExposedApiRepository extends JpaRepository<ExposedApiEntity, UUID> {
     Optional<ExposedApiEntity> findByMicroServiceIdAndName(UUID microServiceId, String name);
 
+    Optional<ExposedApiEntity> findByMicroServiceIdAndEndpointId(UUID microServiceId, UUID endpointId);
+
     List<ExposedApiEntity> findByMicroServiceId(UUID microServiceId);
 
     List<ExposedApiEntity> findByMicroServiceIdAndUseDefaultConfig(UUID microServiceId, Boolean useDefaultConfig);

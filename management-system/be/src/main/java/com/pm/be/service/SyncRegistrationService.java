@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -71,19 +72,23 @@ public class SyncRegistrationService {
 
         if (exposedApis != null) {
             for (var api : exposedApis) {
-                var existingEntity = exposedApiRepo.findByMicroServiceIdAndName(savedService.getId(), api.name());
+                var existingEntity = exposedApiRepo.findByMicroServiceIdAndEndpointId(savedService.getId(), api.endpointId())
+                        .or(() -> exposedApiRepo.findByMicroServiceIdAndName(savedService.getId(), api.name()));
                 var entity = existingEntity
                         .orElseGet(() -> {
                             var e = new ExposedApiEntity();
                             e.setMicroServiceId(savedService.getId());
-                            e.setName(api.name());
                             e.setUseDefaultConfig(true);
                             e.setRegistrationSource(RegistrationSource.KAFKA_SYNC);
                             apiDefaultConfigResolver.applyTo(e);
                             e.setCreatedAt(now);
                             return e;
                         });
+                entity.setEndpointId(api.endpointId());
+                entity.setEndpointKey(api.endpointKey());
+                entity.setName(api.name());
                 entity.setPath(api.path());
+                entity.setTopic(api.topic());
                 entity.setMethod(api.method());
                 entity.setProtocol(api.protocol());
                 entity.setSyncStatus(SyncStatus.ACTIVE);
@@ -97,7 +102,8 @@ public class SyncRegistrationService {
 
         if (clientApis != null) {
             for (var api : clientApis) {
-                var existingEntity = clientApiRepo.findByMicroServiceIdAndName(savedService.getId(), api.name());
+                var existingEntity = clientApiRepo.findByMicroServiceIdAndEndpointId(savedService.getId(), api.endpointId())
+                        .or(() -> clientApiRepo.findByMicroServiceIdAndName(savedService.getId(), api.name()));
                 var entity = existingEntity
                         .orElseGet(() -> {
                             var e = new ClientApiEntity();
@@ -108,7 +114,11 @@ public class SyncRegistrationService {
                             e.setCreatedAt(now);
                             return e;
                         });
+                entity.setEndpointId(api.endpointId());
+                entity.setEndpointKey(api.endpointKey());
+                entity.setName(api.name());
                 entity.setDestinationUrl(api.destinationUrl());
+                entity.setTopic(api.topic());
                 entity.setMethod(api.method());
                 entity.setProtocol(api.protocol());
                 entity.setSyncStatus(SyncStatus.ACTIVE);
@@ -121,6 +131,6 @@ public class SyncRegistrationService {
         }
     }
 
-    public record ExposedApiInfo(String name, String path, String method, String protocol) {}
-    public record ClientApiInfo(String name, String destinationUrl, String method, String protocol) {}
+    public record ExposedApiInfo(UUID endpointId, String endpointKey, String name, String path, String topic, String method, String protocol) {}
+    public record ClientApiInfo(UUID endpointId, String endpointKey, String name, String destinationUrl, String topic, String method, String protocol) {}
 }

@@ -16,9 +16,12 @@ public class ClientApiRedisConfig {
     UUID id;
     UUID microServiceId;
     String serviceName;
+    UUID endpointId;
+    String endpointKey;
     UUID clientId;
     String apiName;
     String destinationUrl;
+    String topic;
     String method;
     String protocol;
     Integer latencyThresholdMs;

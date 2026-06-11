@@ -11,6 +11,7 @@ import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
@@ -49,11 +50,19 @@ public class RegistrationEventConsumer {
         if (array == null || !array.isArray()) return null;
         var list = new ArrayList<SyncRegistrationService.ExposedApiInfo>();
         for (var node : array) {
+            var endpointId = optionalUuid(node, "endpointId");
+            if (endpointId == null) {
+                log.warn("Skip exposedApi because endpointId is missing: name={}", optionalText(node, "name"));
+                continue;
+            }
             list.add(new SyncRegistrationService.ExposedApiInfo(
-                    node.get("name").asText(),
-                    node.get("path").asText(),
-                    node.get("method").asText(),
-                    node.get("protocol").asText()));
+                    endpointId,
+                    optionalText(node, "endpointKey"),
+                    optionalText(node, "name"),
+                    optionalText(node, "path"),
+                    optionalText(node, "topic"),
+                    optionalText(node, "method"),
+                    optionalText(node, "protocol")));
         }
         return list;
     }
@@ -62,13 +71,31 @@ public class RegistrationEventConsumer {
         if (array == null || !array.isArray()) return null;
         var list = new ArrayList<SyncRegistrationService.ClientApiInfo>();
         for (var node : array) {
+            var endpointId = optionalUuid(node, "endpointId");
+            if (endpointId == null) {
+                log.warn("Skip clientApi because endpointId is missing: name={}", optionalText(node, "name"));
+                continue;
+            }
             list.add(new SyncRegistrationService.ClientApiInfo(
-                    node.get("name").asText(),
-                    node.get("destinationUrl").asText(),
-                    node.get("method").asText(),
-                    node.get("protocol").asText()));
+                    endpointId,
+                    optionalText(node, "endpointKey"),
+                    optionalText(node, "name"),
+                    optionalText(node, "destinationUrl"),
+                    optionalText(node, "topic"),
+                    optionalText(node, "method"),
+                    optionalText(node, "protocol")));
         }
         return list;
+    }
+
+    private UUID optionalUuid(JsonNode root, String fieldName) {
+        var value = optionalText(root, fieldName);
+        return StringUtils.hasText(value) ? UUID.fromString(value) : null;
+    }
+
+    private String optionalText(JsonNode root, String fieldName) {
+        var node = root.get(fieldName);
+        return node == null || node.isNull() ? null : node.asText();
     }
 
     private String requiredText(JsonNode root, String fieldName) {

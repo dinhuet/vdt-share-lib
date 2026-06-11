@@ -19,9 +19,12 @@ public class ExposedApiRedisConfig {
     UUID id;
     UUID microServiceId;
     String serviceName;
+    UUID endpointId;
+    String endpointKey;
     String apiName;
     String path;
     String method;
+    String topic;
     String protocol;
     Integer maxRequests;
     Integer throttleWindowSec;

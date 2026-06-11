@@ -16,7 +16,7 @@ import java.util.UUID;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Entity
 @Table(name = "exposed_api", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"micro_service_id", "name"})
+        @UniqueConstraint(columnNames = {"micro_service_id", "endpoint_id"})
 })
 public class ExposedApiEntity {
     @Id
@@ -26,6 +26,12 @@ public class ExposedApiEntity {
     @Column(name = "micro_service_id", nullable = false)
     UUID microServiceId;
 
+    @Column(name = "endpoint_id")
+    UUID endpointId;
+
+    @Column(name = "endpoint_key", length = 500)
+    String endpointKey;
+
     @Column(nullable = false, length = 100)
     String name;
 
@@ -34,6 +40,9 @@ public class ExposedApiEntity {
 
     @Column(length = 10)
     String method;
+
+    @Column(length = 255)
+    String topic;
 
     @Column(nullable = false, length = 20)
     String protocol;

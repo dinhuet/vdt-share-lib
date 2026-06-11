@@ -17,9 +17,12 @@ public class ExposedApiResponse {
     UUID id;
     UUID microServiceId;
     String microServiceName;
+    UUID endpointId;
+    String endpointKey;
     String name;
     String path;
     String method;
+    String topic;
     String protocol;
     Integer maxRequests;
     Integer throttleWindowSec;

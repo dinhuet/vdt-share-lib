@@ -15,7 +15,6 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.Collection;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -42,10 +41,6 @@ public class ClientApiRedisSyncService {
         afterCommit(() -> doDeleteApi(api));
     }
 
-    public void deleteApi(UUID microServiceId, String apiName) {
-        afterCommit(() -> doDeleteApi(microServiceId, apiName));
-    }
-
     private void doSyncApi(ClientApiEntity api) {
         var service = microServiceRepo.findById(api.getMicroServiceId()).orElse(null);
         if (service == null) {
@@ -58,7 +53,7 @@ public class ClientApiRedisSyncService {
             return;
         }
 
-        var key = buildClientApiKey(service.getName(), api.getName());
+        var key = buildClientApiKey(api);
         try {
             redisTemplate.opsForValue().set(key, objectMapper.writeValueAsString(toRedisConfig(api, service)));
         } catch (JsonProcessingException e) {
@@ -77,17 +72,8 @@ public class ClientApiRedisSyncService {
         deleteApi(api, service);
     }
 
-    private void doDeleteApi(UUID microServiceId, String apiName) {
-        var service = microServiceRepo.findById(microServiceId).orElse(null);
-        if (service == null) {
-            log.warn("Skip client_api Redis delete because micro_service was not found: microServiceId={}", microServiceId);
-            return;
-        }
-        deleteKey(buildClientApiKey(service.getName(), apiName));
-    }
-
     private void deleteApi(ClientApiEntity api, MicroServiceEntity service) {
-        deleteKey(buildClientApiKey(service.getName(), api.getName()));
+        deleteKey(buildClientApiKey(api));
     }
 
     private void deleteKey(String key) {
@@ -112,8 +98,8 @@ public class ClientApiRedisSyncService {
         });
     }
 
-    private String buildClientApiKey(String serviceName, String apiName) {
-        return CLIENT_API_KEY_PREFIX + ":" + serviceName + ":" + apiName;
+    private String buildClientApiKey(ClientApiEntity api) {
+        return CLIENT_API_KEY_PREFIX + ":" + api.getEndpointId();
     }
 
     private ClientApiRedisConfig toRedisConfig(ClientApiEntity api, MicroServiceEntity service) {
@@ -121,9 +107,12 @@ public class ClientApiRedisSyncService {
                 .id(api.getId())
                 .microServiceId(api.getMicroServiceId())
                 .serviceName(service.getName())
+                .endpointId(api.getEndpointId())
+                .endpointKey(api.getEndpointKey())
                 .clientId(api.getClientId())
                 .apiName(api.getName())
                 .destinationUrl(api.getDestinationUrl())
+                .topic(api.getTopic())
                 .method(api.getMethod())
                 .protocol(api.getProtocol())
                 .latencyThresholdMs(api.getLatencyThresholdMs())

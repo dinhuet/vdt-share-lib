@@ -53,7 +53,7 @@ public class ExposedApiRedisSyncService {
             return;
         }
 
-        var key = buildExposedApiKey(service.getName(), api.getName());
+        var key = buildExposedApiKey(api);
         try {
             redisTemplate.opsForValue().set(key, objectMapper.writeValueAsString(toRedisConfig(api, service)));
         } catch (JsonProcessingException e) {
@@ -73,7 +73,7 @@ public class ExposedApiRedisSyncService {
     }
 
     private void deleteApi(ExposedApiEntity api, MicroServiceEntity service) {
-        var key = buildExposedApiKey(service.getName(), api.getName());
+        var key = buildExposedApiKey(api);
         try {
             redisTemplate.delete(key);
         } catch (RuntimeException e) {
@@ -95,8 +95,8 @@ public class ExposedApiRedisSyncService {
         });
     }
 
-    private String buildExposedApiKey(String serviceName, String apiName) {
-        return EXPOSED_API_KEY_PREFIX + ":" + serviceName + ":" + apiName;
+    private String buildExposedApiKey(ExposedApiEntity api) {
+        return EXPOSED_API_KEY_PREFIX + ":" + api.getEndpointId();
     }
 
     private ExposedApiRedisConfig toRedisConfig(ExposedApiEntity api, MicroServiceEntity service) {
@@ -104,9 +104,12 @@ public class ExposedApiRedisSyncService {
                 .id(api.getId())
                 .microServiceId(api.getMicroServiceId())
                 .serviceName(service.getName())
+                .endpointId(api.getEndpointId())
+                .endpointKey(api.getEndpointKey())
                 .apiName(api.getName())
                 .path(api.getPath())
                 .method(api.getMethod())
+                .topic(api.getTopic())
                 .protocol(api.getProtocol())
                 .maxRequests(api.getMaxRequests())
                 .throttleWindowSec(api.getThrottleWindowSec())

@@ -19,7 +19,6 @@ import org.springframework.util.StringUtils;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -52,8 +51,6 @@ public class ClientApiService {
         }
 
         var entity = getEntity(id);
-        var oldMicroServiceId = entity.getMicroServiceId();
-        var oldName = entity.getName();
         clientApiRepo.findByMicroServiceIdAndName(request.getMicroServiceId(), request.getName())
                 .filter(existing -> !existing.getId().equals(id))
                 .ifPresent(existing -> {
@@ -64,7 +61,6 @@ public class ClientApiService {
         entity.setUpdatedAt(LocalDateTime.now());
 
         var saved = clientApiRepo.save(entity);
-        deleteOldRedisKeyIfChanged(oldMicroServiceId, oldName, saved);
         clientApiRedisSyncService.syncApi(saved);
         return toResponse(saved);
     }
@@ -168,20 +164,17 @@ public class ClientApiService {
         entity.setEnabled(request.getEnabled() != null ? request.getEnabled() : entity.getEnabled());
     }
 
-    private void deleteOldRedisKeyIfChanged(UUID oldMicroServiceId, String oldName, ClientApiEntity saved) {
-        if (!Objects.equals(oldMicroServiceId, saved.getMicroServiceId()) || !Objects.equals(oldName, saved.getName())) {
-            clientApiRedisSyncService.deleteApi(oldMicroServiceId, oldName);
-        }
-    }
-
     private ClientApiResponse toResponse(ClientApiEntity entity) {
         return ClientApiResponse.builder()
                 .id(entity.getId())
                 .microServiceId(entity.getMicroServiceId())
                 .microServiceName(resolveMicroServiceName(entity.getMicroServiceId()))
+                .endpointId(entity.getEndpointId())
+                .endpointKey(entity.getEndpointKey())
                 .clientId(entity.getClientId())
                 .name(entity.getName())
                 .destinationUrl(entity.getDestinationUrl())
+                .topic(entity.getTopic())
                 .method(entity.getMethod())
                 .protocol(entity.getProtocol())
                 .latencyThresholdMs(entity.getLatencyThresholdMs())

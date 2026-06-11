@@ -15,7 +15,7 @@ import java.util.UUID;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Entity
 @Table(name = "client_api", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"micro_service_id", "name"})
+        @UniqueConstraint(columnNames = {"micro_service_id", "endpoint_id"})
 })
 public class ClientApiEntity {
     @Id
@@ -25,6 +25,12 @@ public class ClientApiEntity {
     @Column(name = "micro_service_id", nullable = false)
     UUID microServiceId;
 
+    @Column(name = "endpoint_id")
+    UUID endpointId;
+
+    @Column(name = "endpoint_key", length = 500)
+    String endpointKey;
+
     @Column(name = "client_id")
     UUID clientId;
 
@@ -33,6 +39,9 @@ public class ClientApiEntity {
 
     @Column(name = "destination_url", length = 255)
     String destinationUrl;
+
+    @Column(length = 255)
+    String topic;
 
     @Column(length = 10)
     String method;

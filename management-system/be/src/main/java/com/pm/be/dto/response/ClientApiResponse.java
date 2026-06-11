@@ -16,9 +16,12 @@ public class ClientApiResponse {
     UUID id;
     UUID microServiceId;
     String microServiceName;
+    UUID endpointId;
+    String endpointKey;
     UUID clientId;
     String name;
     String destinationUrl;
+    String topic;
     String method;
     String protocol;
     Integer latencyThresholdMs;

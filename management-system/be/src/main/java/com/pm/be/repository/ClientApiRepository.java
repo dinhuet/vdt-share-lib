@@ -12,6 +12,8 @@ import java.util.UUID;
 public interface ClientApiRepository extends JpaRepository<ClientApiEntity, UUID>, JpaSpecificationExecutor<ClientApiEntity> {
     Optional<ClientApiEntity> findByMicroServiceIdAndName(UUID microServiceId, String name);
 
+    Optional<ClientApiEntity> findByMicroServiceIdAndEndpointId(UUID microServiceId, UUID endpointId);
+
     List<ClientApiEntity> findByMicroServiceId(UUID microServiceId);
 
     List<ClientApiEntity> findBySyncStatus(SyncStatus syncStatus);
