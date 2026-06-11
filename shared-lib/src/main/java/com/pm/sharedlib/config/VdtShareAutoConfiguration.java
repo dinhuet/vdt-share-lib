@@ -9,10 +9,12 @@ import com.pm.sharedlib.kafka.RegistrationEventProducer;
 import com.pm.sharedlib.runtime.AccessPolicyEvaluator;
 import com.pm.sharedlib.runtime.ClientAuthService;
 import com.pm.sharedlib.runtime.ClientPermissionChecker;
+import com.pm.sharedlib.runtime.HmacSignatureVerifier;
 import com.pm.sharedlib.runtime.MaxResponseSizeAdvice;
 import com.pm.sharedlib.runtime.RateLimiter;
 import com.pm.sharedlib.runtime.SecurityAuthFilter;
 import com.pm.sharedlib.runtime.SecuritySettingsStore;
+import com.pm.sharedlib.runtime.SigningSecretService;
 import com.pm.sharedlib.service.RegistrationService;
 import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.beans.factory.ObjectProvider;
@@ -89,8 +91,25 @@ public class VdtShareAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public ClientAuthService clientAuthService(SecuritySettingsStore securitySettingsStore) {
-        return new ClientAuthService(securitySettingsStore);
+    public SigningSecretService signingSecretService(VdtShareProperties properties) {
+        return new SigningSecretService(properties);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public HmacSignatureVerifier hmacSignatureVerifier(
+            StringRedisTemplate redisTemplate,
+            VdtShareProperties properties,
+            SigningSecretService signingSecretService) {
+        return new HmacSignatureVerifier(redisTemplate, properties, signingSecretService);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public ClientAuthService clientAuthService(
+            SecuritySettingsStore securitySettingsStore,
+            HmacSignatureVerifier hmacSignatureVerifier) {
+        return new ClientAuthService(securitySettingsStore, hmacSignatureVerifier);
     }
 
     @Bean

@@ -17,10 +17,14 @@ public class VdtShareProperties {
     public static class Runtime {
         boolean httpFilterEnabled = true;
         boolean failOpen = false;
+        boolean hmacEnabled = false;
+        long hmacMaxClockSkewSeconds = 300;
+        String credentialEncryptionKey;
         String exposedApiKeyPrefix = "vdt:exposed-api";
         String accessPolicyKeyPrefix = "vdt:access-policy";
         String keyIdPrefix = "vdt:key-id";
         String clientPermissionKeyPrefix = "vdt:client-permission";
         String rateLimitKeyPrefix = "vdt:rate-limit";
+        String nonceKeyPrefix = "vdt:hmac-nonce";
     }
 }

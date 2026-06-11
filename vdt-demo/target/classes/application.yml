@@ -9,3 +9,7 @@ vdt:
     runtime:
       http-filter-enabled: true
       fail-open: false
+      hmac-enabled: true
+      credential-encryption-key: vdt_encryption_k7Nq9xP2rT8mL4sZ6aBcDeFg
+      hmac-max-clock-skew-seconds: 300
+      nonce-key-prefix: vdt:hmac-nonce

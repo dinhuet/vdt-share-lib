@@ -65,10 +65,14 @@ public class SecurityAuthFilter extends OncePerRequestFilter {
                 throw new RuntimeSecurityException(FORBIDDEN, "ACCESS_POLICY_DENIED", "Request was denied by access policy");
             }
 
+            var downstreamRequest = request;
             String rateLimitIdentityType = "ip";
             String rateLimitIdentityValue = resolveSourceIp(request);
             if (decision == AccessPolicyDecision.REQUIRE_AUTH) {
-                var client = clientAuthService.authenticate(request);
+                if (properties.getRuntime().isHmacEnabled()) {
+                    downstreamRequest = new CachedBodyHttpServletRequest(request, resolveMaxRequestBytes(config));
+                }
+                var client = clientAuthService.authenticate(downstreamRequest);
                 clientPermissionChecker.checkPermission(client.getClientId(), config.getId());
                 rateLimitIdentityType = "client";
                 rateLimitIdentityValue = client.getClientId().toString();
@@ -79,7 +83,7 @@ public class SecurityAuthFilter extends OncePerRequestFilter {
 
             checkRateLimit(config, rateLimitIdentityType, rateLimitIdentityValue);
             long start = System.currentTimeMillis();
-            filterChain.doFilter(request, response);
+            filterChain.doFilter(downstreamRequest, response);
             long elapsed = System.currentTimeMillis() - start;
             if (config.getLatencyThresholdMs() != null && elapsed > config.getLatencyThresholdMs()) {
                 log.warn("Exposed API [{}] {} {} latency threshold exceeded: {}ms > {}ms",
@@ -129,6 +133,13 @@ public class SecurityAuthFilter extends OncePerRequestFilter {
         if (contentLength > maxBytes) {
             throw new RuntimeSecurityException(PAYLOAD_TOO_LARGE, "REQUEST_TOO_LARGE", "Request body is too large");
         }
+    }
+
+    private long resolveMaxRequestBytes(ExposedApiRuntimeConfig config) {
+        if (config.getMaxRequestKb() == null || config.getMaxRequestKb() <= 0) {
+            return -1;
+        }
+        return config.getMaxRequestKb() * 1024L;
     }
 
     private String resolveRequestPath(HttpServletRequest request) {

@@ -1,7 +1,6 @@
 package com.pm.sharedlib.runtime;
 
 import jakarta.servlet.http.HttpServletRequest;
-import lombok.RequiredArgsConstructor;
 import org.springframework.util.StringUtils;
 
 import java.nio.charset.StandardCharsets;
@@ -10,13 +9,22 @@ import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.UUID;
 
-@RequiredArgsConstructor
 public class ClientAuthService {
 
     private static final int UNAUTHORIZED = 401;
     private static final String ACTIVE = "ACTIVE";
 
     private final SecuritySettingsStore settingsStore;
+    private final HmacSignatureVerifier hmacSignatureVerifier;
+
+    public ClientAuthService(SecuritySettingsStore settingsStore) {
+        this(settingsStore, null);
+    }
+
+    public ClientAuthService(SecuritySettingsStore settingsStore, HmacSignatureVerifier hmacSignatureVerifier) {
+        this.settingsStore = settingsStore;
+        this.hmacSignatureVerifier = hmacSignatureVerifier;
+    }
 
     public AuthenticatedClient authenticate(HttpServletRequest request) {
         var clientId = parseClientId(requiredHeader(request, RuntimeSecurityHeaders.CLIENT_ID));
@@ -32,6 +40,9 @@ public class ClientAuthService {
         validateApiKey(apiKey, credential);
         if (!clientId.equals(credential.getClientId())) {
             throw unauthorized(RuntimeSecurityErrorCodes.AUTH_CLIENT_MISMATCH, "Client id does not match credential");
+        }
+        if (hmacSignatureVerifier != null) {
+            hmacSignatureVerifier.verify(request, credential);
         }
 
         return AuthenticatedClient.builder()
