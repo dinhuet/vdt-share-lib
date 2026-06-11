@@ -28,7 +28,7 @@ export default function ExposedApiConfigModal({ api, saving, onClose, onSave, on
   return (
     <Modal
       title="Exposed API Config"
-      description={`${api.name} · ${api.method || '-'} ${api.path || ''}`}
+      description={`${api.name} · ${api.method || '-'} ${api.protocol === 'MQ' ? api.topic || '' : api.path || ''}`}
       onClose={onClose}
       footer={(
         <>
@@ -43,7 +43,10 @@ export default function ExposedApiConfigModal({ api, saving, onClose, onSave, on
           <h3>Overview</h3>
           <dl>
             <dt>Service</dt><dd>{api.microServiceName || '-'}</dd>
+            <dt>Endpoint ID</dt><dd><code>{api.endpointId || '-'}</code></dd>
+            <dt>Endpoint Key</dt><dd><code>{api.endpointKey || '-'}</code></dd>
             <dt>Protocol</dt><dd>{api.protocol || '-'}</dd>
+            <dt>Target</dt><dd><code>{api.protocol === 'MQ' ? api.topic || '-' : api.path || '-'}</code></dd>
             <dt>Registration</dt><dd>{api.registrationSource || '-'}</dd>
             <dt>Status</dt><dd><Badge tone={statusTone(api.syncStatus)} size="sm">{api.syncStatus || '-'}</Badge></dd>
             <dt>Use Default</dt><dd>{api.useDefaultConfig ? 'Yes' : 'No'}</dd>

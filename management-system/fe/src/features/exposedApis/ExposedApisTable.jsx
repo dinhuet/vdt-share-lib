@@ -4,7 +4,7 @@ import DataTable from '../../components/DataTable';
 import ToggleSwitch from '../../components/ToggleSwitch';
 import { formatRelativeTime } from '../../utils/date';
 
-const columns = ['API Name', 'Service', 'Method', 'Path', 'Protocol', 'Enabled', 'Default Config', 'Sync Status', 'Last Sync', 'Actions'];
+const columns = ['API Name', 'Service', 'Method', 'Protocol', 'Enabled', 'Default Config', 'Sync Status', 'Last Sync', 'Actions'];
 
 export default function ExposedApisTable({ apis, busyId, onToggleEnabled, onConfigure, onResetDefault, onDelete }) {
   return (
@@ -18,7 +18,6 @@ export default function ExposedApisTable({ apis, busyId, onToggleEnabled, onConf
           <td><button className="link-button" type="button" onClick={() => onConfigure(api)}>{api.name}</button></td>
           <td>{api.microServiceName || '-'}</td>
           <td><Badge tone={methodTone(api.method)} size="sm">{api.method || '-'}</Badge></td>
-          <td><code>{api.path || '-'}</code></td>
           <td>{api.protocol || '-'}</td>
           <td><ToggleSwitch checked={Boolean(api.enabled)} disabled={busyId === api.id || api.id?.startsWith('sample')} onChange={() => onToggleEnabled(api)} /></td>
           <td><Badge tone={api.useDefaultConfig ? 'info' : 'neutral'} size="sm">{api.useDefaultConfig ? 'YES' : 'NO'}</Badge></td>

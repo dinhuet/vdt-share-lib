@@ -13,6 +13,7 @@ const defaultForm = {
   clientId: '',
   name: '',
   destinationUrl: '',
+  topic: '',
   method: 'GET',
   protocol: 'HTTP/1.1',
   latencyThresholdMs: '',
@@ -32,6 +33,7 @@ export function clientApiToForm(api) {
     clientId: api.clientId || '',
     name: api.name || '',
     destinationUrl: api.destinationUrl || '',
+    topic: api.topic || '',
     method: api.method || 'GET',
     protocol: api.protocol || 'HTTP/1.1',
     latencyThresholdMs: toFormValue(api.latencyThresholdMs),
@@ -51,6 +53,7 @@ export function clientApiFormToPayload(form) {
     clientId: form.clientId || null,
     name: form.name.trim(),
     destinationUrl: form.destinationUrl.trim() || null,
+    topic: form.topic.trim() || null,
     method: form.method || null,
     protocol: form.protocol.trim(),
     latencyThresholdMs: toNumberOrNull(form.latencyThresholdMs),
@@ -73,6 +76,9 @@ export function filterClientApis(clientApis, { microServiceId, enabled, syncStat
     const matchesSearch = !keyword
       || api.name?.toLowerCase().includes(keyword)
       || api.destinationUrl?.toLowerCase().includes(keyword)
+      || api.topic?.toLowerCase().includes(keyword)
+      || api.endpointId?.toLowerCase().includes(keyword)
+      || api.endpointKey?.toLowerCase().includes(keyword)
       || api.microServiceName?.toLowerCase().includes(keyword)
       || api.protocol?.toLowerCase().includes(keyword);
     return matchesService && matchesEnabled && matchesStatus && matchesSearch;

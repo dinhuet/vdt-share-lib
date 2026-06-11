@@ -9,6 +9,7 @@ export default function ClientApiModal({ clientApi, serviceOptions, saving, onCl
   const [form, setForm] = useState(() => clientApiToForm(clientApi));
   const [error, setError] = useState('');
   const isSample = clientApi?.id?.startsWith('client-api-sample');
+  const isSynced = Boolean(clientApi?.endpointId) && !isSample;
 
   function updateField(key, value) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -43,15 +44,23 @@ export default function ClientApiModal({ clientApi, serviceOptions, saving, onCl
     >
       <div className="form-grid wide">
         <label>
+          <span>Endpoint ID</span>
+          <input value={clientApi?.endpointId || '-'} disabled />
+        </label>
+        <label>
+          <span>Endpoint Key</span>
+          <input value={clientApi?.endpointKey || '-'} disabled />
+        </label>
+        <label>
           <span>Microservice</span>
-          <select value={form.microServiceId} onChange={(event) => updateField('microServiceId', event.target.value)}>
+          <select value={form.microServiceId} disabled={isSynced} onChange={(event) => updateField('microServiceId', event.target.value)}>
             <option value="">Select service</option>
             {serviceOptions.map((service) => <option key={service.id} value={service.id}>{service.name}</option>)}
           </select>
         </label>
         <label>
           <span>API Name</span>
-          <input value={form.name} onChange={(event) => updateField('name', event.target.value)} placeholder="PaymentAuthorizeClient" />
+          <input value={form.name} disabled={isSynced} onChange={(event) => updateField('name', event.target.value)} placeholder="PaymentAuthorizeClient" />
         </label>
         <label>
           <span>Client ID</span>
@@ -59,17 +68,21 @@ export default function ClientApiModal({ clientApi, serviceOptions, saving, onCl
         </label>
         <label>
           <span>Destination URL</span>
-          <input value={form.destinationUrl} onChange={(event) => updateField('destinationUrl', event.target.value)} placeholder="http://service/api/path" />
+          <input value={form.destinationUrl} disabled={isSynced} onChange={(event) => updateField('destinationUrl', event.target.value)} placeholder="http://service/api/path" />
+        </label>
+        <label>
+          <span>Topic</span>
+          <input value={form.topic} disabled={isSynced} onChange={(event) => updateField('topic', event.target.value)} placeholder="Kafka topic for MQ" />
         </label>
         <label>
           <span>Method</span>
-          <select value={form.method} onChange={(event) => updateField('method', event.target.value)}>
+          <select value={form.method} disabled={isSynced} onChange={(event) => updateField('method', event.target.value)}>
             {HTTP_METHODS.map((method) => <option key={method} value={method}>{method}</option>)}
           </select>
         </label>
         <label>
           <span>Protocol</span>
-          <select value={form.protocol} onChange={(event) => updateField('protocol', event.target.value)}>
+          <select value={form.protocol} disabled={isSynced} onChange={(event) => updateField('protocol', event.target.value)}>
             {CLIENT_API_PROTOCOLS.map((protocol) => <option key={protocol} value={protocol}>{protocol}</option>)}
           </select>
         </label>
@@ -92,6 +105,7 @@ export default function ClientApiModal({ clientApi, serviceOptions, saving, onCl
           Enabled
         </label>
       </div>
+      {isSynced ? <p className="helper-text">Metadata fields are synced from shared-lib and cannot be edited here.</p> : null}
       {error ? <p className="form-error">{error}</p> : null}
     </Modal>
   );

@@ -12,7 +12,7 @@ export const SYNC_STATUSES = ['ACTIVE', 'STALE'];
 
 export const HTTP_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
 
-export const CLIENT_API_PROTOCOLS = ['HTTP/1.1', 'HTTP/2', 'gRPC'];
+export const CLIENT_API_PROTOCOLS = ['HTTP', 'HTTP/1.1', 'HTTP/2', 'gRPC', 'MQ'];
 
 export const APPLY_MODES = ['NEW_ONLY', 'APPLY_TO_EXISTING', 'FORCE_APPLY_ALL'];
 

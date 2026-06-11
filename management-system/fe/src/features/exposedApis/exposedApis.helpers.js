@@ -43,6 +43,9 @@ export function filterApis(apis, { microServiceId, syncStatus, search }) {
     const matchesSearch = !keyword
       || api.name?.toLowerCase().includes(keyword)
       || api.path?.toLowerCase().includes(keyword)
+      || api.topic?.toLowerCase().includes(keyword)
+      || api.endpointId?.toLowerCase().includes(keyword)
+      || api.endpointKey?.toLowerCase().includes(keyword)
       || api.microServiceName?.toLowerCase().includes(keyword);
     return matchesService && matchesStatus && matchesSearch;
   });
