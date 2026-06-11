@@ -1,0 +1,99 @@
+package com.pm.sharedlib.runtime;
+
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
+import org.springframework.util.StringUtils;
+
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.time.LocalDateTime;
+import java.util.Base64;
+import java.util.UUID;
+
+@RequiredArgsConstructor
+public class ClientAuthService {
+
+    private static final int UNAUTHORIZED = 401;
+    private static final String ACTIVE = "ACTIVE";
+
+    private final SecuritySettingsStore settingsStore;
+
+    public AuthenticatedClient authenticate(HttpServletRequest request) {
+        var clientId = parseClientId(requiredHeader(request, RuntimeSecurityHeaders.CLIENT_ID));
+        var keyId = requiredHeader(request, RuntimeSecurityHeaders.KEY_ID);
+        var apiKey = requiredHeader(request, RuntimeSecurityHeaders.API_KEY);
+
+        var credential = settingsStore.getCredential(keyId)
+                .orElseThrow(() -> unauthorized(
+                        RuntimeSecurityErrorCodes.AUTH_CREDENTIAL_NOT_FOUND,
+                        "Client credential was not found"));
+
+        validateCredential(credential);
+        validateApiKey(apiKey, credential);
+        if (!clientId.equals(credential.getClientId())) {
+            throw unauthorized(RuntimeSecurityErrorCodes.AUTH_CLIENT_MISMATCH, "Client id does not match credential");
+        }
+
+        return AuthenticatedClient.builder()
+                .clientId(clientId)
+                .clientCode(credential.getClientCode())
+                .clientName(credential.getClientName())
+                .keyId(credential.getKeyId())
+                .build();
+    }
+
+    private String requiredHeader(HttpServletRequest request, String headerName) {
+        var value = request.getHeader(headerName);
+        if (!StringUtils.hasText(value)) {
+            throw unauthorized(RuntimeSecurityErrorCodes.AUTH_HEADER_MISSING, "Missing required header: " + headerName);
+        }
+        return value.trim();
+    }
+
+    private UUID parseClientId(String value) {
+        try {
+            return UUID.fromString(value);
+        } catch (IllegalArgumentException e) {
+            throw unauthorized(RuntimeSecurityErrorCodes.AUTH_CLIENT_ID_INVALID, "Invalid X-Client-Id header");
+        }
+    }
+
+    private void validateCredential(ClientCredentialRuntimeConfig credential) {
+        if (!ACTIVE.equalsIgnoreCase(credential.getStatus())) {
+            throw unauthorized(RuntimeSecurityErrorCodes.AUTH_CREDENTIAL_INACTIVE, "Client credential is not active");
+        }
+        if (StringUtils.hasText(credential.getRevokedAt())) {
+            throw unauthorized(RuntimeSecurityErrorCodes.AUTH_CREDENTIAL_INACTIVE, "Client credential was revoked");
+        }
+        if (isExpired(credential.getExpiresAt())) {
+            throw unauthorized(RuntimeSecurityErrorCodes.AUTH_CREDENTIAL_EXPIRED, "Client credential expired");
+        }
+    }
+
+    private boolean isExpired(String expiresAt) {
+        if (!StringUtils.hasText(expiresAt)) {
+            return false;
+        }
+        return !LocalDateTime.parse(expiresAt).isAfter(LocalDateTime.now());
+    }
+
+    private void validateApiKey(String apiKey, ClientCredentialRuntimeConfig credential) {
+        if (!hashApiKey(apiKey).equals(credential.getApiKeyHash())) {
+            throw unauthorized(RuntimeSecurityErrorCodes.AUTH_API_KEY_INVALID, "Invalid API key");
+        }
+    }
+
+    private String hashApiKey(String apiKey) {
+        try {
+            var digest = MessageDigest.getInstance("SHA-256");
+            var hash = digest.digest(apiKey.getBytes(StandardCharsets.UTF_8));
+            return Base64.getUrlEncoder().withoutPadding().encodeToString(hash);
+        } catch (Exception e) {
+            throw unauthorized(RuntimeSecurityErrorCodes.AUTH_API_KEY_INVALID, "Failed to hash API key");
+        }
+    }
+
+    private RuntimeSecurityException unauthorized(String errorCode, String message) {
+        return new RuntimeSecurityException(UNAUTHORIZED, errorCode, message);
+    }
+}

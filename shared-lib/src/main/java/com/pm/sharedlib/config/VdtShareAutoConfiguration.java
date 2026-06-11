@@ -5,6 +5,9 @@ import com.pm.sharedlib.endpoint.EndpointManifestStore;
 import com.pm.sharedlib.endpoint.EndpointRegistry;
 import com.pm.sharedlib.endpoint.EndpointScanner;
 import com.pm.sharedlib.kafka.RegistrationEventProducer;
+import com.pm.sharedlib.runtime.AccessPolicyEvaluator;
+import com.pm.sharedlib.runtime.ClientAuthService;
+import com.pm.sharedlib.runtime.ClientPermissionChecker;
 import com.pm.sharedlib.runtime.SecuritySettingsStore;
 import com.pm.sharedlib.service.RegistrationService;
 import org.springframework.beans.factory.ListableBeanFactory;
@@ -72,6 +75,24 @@ public class VdtShareAutoConfiguration {
             ObjectMapper objectMapper,
             VdtShareProperties properties) {
         return new SecuritySettingsStore(redisTemplate, objectMapper, properties);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public AccessPolicyEvaluator accessPolicyEvaluator() {
+        return new AccessPolicyEvaluator();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public ClientAuthService clientAuthService(SecuritySettingsStore securitySettingsStore) {
+        return new ClientAuthService(securitySettingsStore);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public ClientPermissionChecker clientPermissionChecker(SecuritySettingsStore securitySettingsStore) {
+        return new ClientPermissionChecker(securitySettingsStore);
     }
 
     @Bean
