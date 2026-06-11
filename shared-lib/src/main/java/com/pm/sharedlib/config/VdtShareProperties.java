@@ -21,5 +21,6 @@ public class VdtShareProperties {
         String accessPolicyKeyPrefix = "vdt:access-policy";
         String keyIdPrefix = "vdt:key-id";
         String clientPermissionKeyPrefix = "vdt:client-permission";
+        String rateLimitKeyPrefix = "vdt:rate-limit";
     }
 }

@@ -10,6 +10,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
+import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -20,6 +21,7 @@ import java.util.Map;
 public class SecurityAuthFilter extends OncePerRequestFilter {
 
     private static final int FORBIDDEN = 403;
+    private static final int TOO_MANY_REQUESTS = 429;
     private static final int PAYLOAD_TOO_LARGE = 413;
     private static final int SERVICE_UNAVAILABLE = 503;
     private static final String ACTIVE = "ACTIVE";
@@ -30,6 +32,7 @@ public class SecurityAuthFilter extends OncePerRequestFilter {
     private final AccessPolicyEvaluator accessPolicyEvaluator;
     private final ClientAuthService clientAuthService;
     private final ClientPermissionChecker clientPermissionChecker;
+    private final RateLimiter rateLimiter;
     private final VdtShareProperties properties;
     private final ObjectMapper objectMapper;
 
@@ -61,11 +64,19 @@ public class SecurityAuthFilter extends OncePerRequestFilter {
                 throw new RuntimeSecurityException(FORBIDDEN, "ACCESS_POLICY_DENIED", "Request was denied by access policy");
             }
 
+            String rateLimitIdentityType = "ip";
+            String rateLimitIdentityValue = resolveSourceIp(request);
             if (decision == AccessPolicyDecision.REQUIRE_AUTH) {
                 var client = clientAuthService.authenticate(request);
                 clientPermissionChecker.checkPermission(client.getClientId(), config.getId());
+                rateLimitIdentityType = "client";
+                rateLimitIdentityValue = client.getClientId().toString();
+            } else if (StringUtils.hasText(request.getHeader(RuntimeSecurityHeaders.CLIENT_ID))) {
+                rateLimitIdentityType = "client";
+                rateLimitIdentityValue = request.getHeader(RuntimeSecurityHeaders.CLIENT_ID).trim();
             }
 
+            checkRateLimit(config, rateLimitIdentityType, rateLimitIdentityValue);
             filterChain.doFilter(request, response);
         } catch (RuntimeSecurityException e) {
             writeError(response, e.getStatusCode(), e.getErrorCode(), e.getMessage());
@@ -118,6 +129,17 @@ public class SecurityAuthFilter extends OncePerRequestFilter {
 
     private String resolveSourceIp(HttpServletRequest request) {
         return request.getRemoteAddr();
+    }
+
+    private void checkRateLimit(ExposedApiRuntimeConfig config, String identityType, String identityValue) {
+        var result = rateLimiter.check(config, identityType, identityValue);
+        if (!result.allowed()) {
+            throw new RuntimeSecurityException(
+                    TOO_MANY_REQUESTS,
+                    "RATE_LIMIT_EXCEEDED",
+                    "Rate limit exceeded: " + result.currentRequests() + "/" + result.maxRequests()
+                            + " requests in " + result.windowSeconds() + " seconds");
+        }
     }
 
     private void writeError(HttpServletResponse response, int statusCode, String errorCode, String message) throws IOException {

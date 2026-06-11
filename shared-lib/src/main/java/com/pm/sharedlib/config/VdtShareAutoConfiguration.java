@@ -9,6 +9,7 @@ import com.pm.sharedlib.kafka.RegistrationEventProducer;
 import com.pm.sharedlib.runtime.AccessPolicyEvaluator;
 import com.pm.sharedlib.runtime.ClientAuthService;
 import com.pm.sharedlib.runtime.ClientPermissionChecker;
+import com.pm.sharedlib.runtime.RateLimiter;
 import com.pm.sharedlib.runtime.SecurityAuthFilter;
 import com.pm.sharedlib.runtime.SecuritySettingsStore;
 import com.pm.sharedlib.service.RegistrationService;
@@ -99,6 +100,12 @@ public class VdtShareAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    public RateLimiter rateLimiter(StringRedisTemplate redisTemplate, VdtShareProperties properties) {
+        return new RateLimiter(redisTemplate, properties);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
     @ConditionalOnProperty(prefix = "vdt.share.runtime", name = "http-filter-enabled", havingValue = "true", matchIfMissing = true)
     public SecurityAuthFilter securityAuthFilter(
             EndpointRegistry endpointRegistry,
@@ -106,6 +113,7 @@ public class VdtShareAutoConfiguration {
             AccessPolicyEvaluator accessPolicyEvaluator,
             ClientAuthService clientAuthService,
             ClientPermissionChecker clientPermissionChecker,
+            RateLimiter rateLimiter,
             VdtShareProperties properties,
             ObjectMapper objectMapper) {
         return new SecurityAuthFilter(
@@ -114,6 +122,7 @@ public class VdtShareAutoConfiguration {
                 accessPolicyEvaluator,
                 clientAuthService,
                 clientPermissionChecker,
+                rateLimiter,
                 properties,
                 objectMapper);
     }
