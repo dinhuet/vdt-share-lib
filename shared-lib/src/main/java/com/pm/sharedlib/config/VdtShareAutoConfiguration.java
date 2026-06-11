@@ -5,6 +5,7 @@ import com.pm.sharedlib.endpoint.EndpointManifestStore;
 import com.pm.sharedlib.endpoint.EndpointRegistry;
 import com.pm.sharedlib.endpoint.EndpointScanner;
 import com.pm.sharedlib.kafka.RegistrationEventProducer;
+import com.pm.sharedlib.runtime.SecuritySettingsStore;
 import com.pm.sharedlib.service.RegistrationService;
 import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.beans.factory.ObjectProvider;
@@ -14,6 +15,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.Environment;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
@@ -61,6 +63,15 @@ public class VdtShareAutoConfiguration {
             EndpointScanner endpointScanner,
             EndpointManifestStore endpointManifestStore) {
         return new EndpointRegistry(endpointScanner, endpointManifestStore);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public SecuritySettingsStore securitySettingsStore(
+            StringRedisTemplate redisTemplate,
+            ObjectMapper objectMapper,
+            VdtShareProperties properties) {
+        return new SecuritySettingsStore(redisTemplate, objectMapper, properties);
     }
 
     @Bean
