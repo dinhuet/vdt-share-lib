@@ -53,6 +53,7 @@ public class SecurityAuthFilter extends OncePerRequestFilter {
                             "Exposed API runtime config was not found"));
 
             validateExposedApiConfig(config, request);
+            request.setAttribute("exposedApiConfig", config);
 
             var policies = settingsStore.getAccessPolicies(config.getId());
             var decision = accessPolicyEvaluator.evaluate(
@@ -77,7 +78,19 @@ public class SecurityAuthFilter extends OncePerRequestFilter {
             }
 
             checkRateLimit(config, rateLimitIdentityType, rateLimitIdentityValue);
+            long start = System.currentTimeMillis();
             filterChain.doFilter(request, response);
+            long elapsed = System.currentTimeMillis() - start;
+            if (config.getLatencyThresholdMs() != null && elapsed > config.getLatencyThresholdMs()) {
+                log.warn("Exposed API [{}] {} {} latency threshold exceeded: {}ms > {}ms",
+                        config.getEndpointId(), config.getMethod(), config.getPath(),
+                        elapsed, config.getLatencyThresholdMs());
+            }
+            if (config.getTimeoutMs() != null && elapsed > config.getTimeoutMs()) {
+                log.warn("Exposed API [{}] {} {} timed out: {}ms > {}ms",
+                        config.getEndpointId(), config.getMethod(), config.getPath(),
+                        elapsed, config.getTimeoutMs());
+            }
         } catch (RuntimeSecurityException e) {
             writeError(response, e.getStatusCode(), e.getErrorCode(), e.getMessage());
         } catch (RuntimeException e) {

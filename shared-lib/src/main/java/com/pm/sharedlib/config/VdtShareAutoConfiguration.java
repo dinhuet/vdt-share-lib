@@ -9,6 +9,7 @@ import com.pm.sharedlib.kafka.RegistrationEventProducer;
 import com.pm.sharedlib.runtime.AccessPolicyEvaluator;
 import com.pm.sharedlib.runtime.ClientAuthService;
 import com.pm.sharedlib.runtime.ClientPermissionChecker;
+import com.pm.sharedlib.runtime.MaxResponseSizeAdvice;
 import com.pm.sharedlib.runtime.RateLimiter;
 import com.pm.sharedlib.runtime.SecurityAuthFilter;
 import com.pm.sharedlib.runtime.SecuritySettingsStore;
@@ -102,6 +103,12 @@ public class VdtShareAutoConfiguration {
     @ConditionalOnMissingBean
     public RateLimiter rateLimiter(StringRedisTemplate redisTemplate, VdtShareProperties properties) {
         return new RateLimiter(redisTemplate, properties);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public MaxResponseSizeAdvice maxResponseSizeAdvice(ObjectMapper objectMapper) {
+        return new MaxResponseSizeAdvice(objectMapper);
     }
 
     @Bean
