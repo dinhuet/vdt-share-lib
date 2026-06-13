@@ -53,8 +53,40 @@ public class ClientAuthService {
                 .build();
     }
 
+    public AuthenticatedClient authenticate(RuntimeAuthHeaders headers) {
+        var clientId = parseClientId(requiredHeader(headers, RuntimeSecurityHeaders.CLIENT_ID));
+        var keyId = requiredHeader(headers, RuntimeSecurityHeaders.KEY_ID);
+        var apiKey = requiredHeader(headers, RuntimeSecurityHeaders.API_KEY);
+
+        var credential = settingsStore.getCredential(keyId)
+                .orElseThrow(() -> unauthorized(
+                        RuntimeSecurityErrorCodes.AUTH_CREDENTIAL_NOT_FOUND,
+                        "Client credential was not found"));
+
+        validateCredential(credential);
+        validateApiKey(apiKey, credential);
+        if (!clientId.equals(credential.getClientId())) {
+            throw unauthorized(RuntimeSecurityErrorCodes.AUTH_CLIENT_MISMATCH, "Client id does not match credential");
+        }
+
+        return AuthenticatedClient.builder()
+                .clientId(clientId)
+                .clientCode(credential.getClientCode())
+                .clientName(credential.getClientName())
+                .keyId(credential.getKeyId())
+                .build();
+    }
+
     private String requiredHeader(HttpServletRequest request, String headerName) {
         var value = request.getHeader(headerName);
+        if (!StringUtils.hasText(value)) {
+            throw unauthorized(RuntimeSecurityErrorCodes.AUTH_HEADER_MISSING, "Missing required header: " + headerName);
+        }
+        return value.trim();
+    }
+
+    private String requiredHeader(RuntimeAuthHeaders headers, String headerName) {
+        var value = headers.get(headerName);
         if (!StringUtils.hasText(value)) {
             throw unauthorized(RuntimeSecurityErrorCodes.AUTH_HEADER_MISSING, "Missing required header: " + headerName);
         }

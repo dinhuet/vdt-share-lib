@@ -75,6 +75,15 @@ public class EndpointRegistry {
                 .findFirst();
     }
 
+    public Optional<EndpointDefinition> findExposedMq(String topic, String handlerClass, String handlerMethod) {
+        return exposedApis.stream()
+                .filter(endpoint -> "MQ".equalsIgnoreCase(endpoint.getProtocol()))
+                .filter(endpoint -> topic != null && topic.equals(endpoint.getTopic()))
+                .filter(endpoint -> handlerClass != null && handlerClass.equals(endpoint.getHandlerClass()))
+                .filter(endpoint -> handlerMethod != null && handlerMethod.equals(endpoint.getHandlerMethod()))
+                .findFirst();
+    }
+
     public Optional<EndpointDefinition> findClientHttp(String method, String destinationUrl) {
         var normalizedMethod = method == null ? "" : method.toUpperCase();
         return clientApis.stream()

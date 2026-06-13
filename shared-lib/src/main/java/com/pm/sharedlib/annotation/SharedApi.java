@@ -12,4 +12,5 @@ public @interface SharedApi {
     String path() default "";
     String method() default "";
     String protocol() default "HTTP";
+    String topic() default "";
 }

@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
@@ -25,7 +26,9 @@ public class EndpointScanner {
     private final ObjectProvider<RequestMappingHandlerMapping> requestMappingHandlerMapping;
 
     public ScannedEndpoints scan() {
-        return new ScannedEndpoints(scanExposedHttpApis(), scanClientApis());
+        var exposedApis = new ArrayList<>(scanExposedHttpApis());
+        exposedApis.addAll(scanExposedMqApis());
+        return new ScannedEndpoints(exposedApis, scanClientApis());
     }
 
     private List<EndpointDefinition> scanExposedHttpApis() {
@@ -58,6 +61,41 @@ public class EndpointScanner {
             }
         }
         return endpoints;
+    }
+
+    private List<EndpointDefinition> scanExposedMqApis() {
+        var endpoints = new ArrayList<EndpointDefinition>();
+        for (var beanName : beanFactory.getBeanDefinitionNames()) {
+            var bean = beanFactory.getBean(beanName);
+            for (var method : bean.getClass().getMethods()) {
+                var sharedApi = method.getAnnotation(SharedApi.class);
+                if (sharedApi == null || !"MQ".equalsIgnoreCase(sharedApi.protocol())) {
+                    continue;
+                }
+                var topic = resolveMqTopic(sharedApi, method);
+                endpoints.add(EndpointDefinition.builder()
+                        .type(EndpointType.EXPOSED)
+                        .protocol("MQ")
+                        .name(sharedApi.name())
+                        .topic(topic)
+                        .handlerClass(bean.getClass().getName())
+                        .handlerMethod(method.getName())
+                        .build());
+            }
+        }
+        return endpoints;
+    }
+
+    private String resolveMqTopic(SharedApi sharedApi, Method method) {
+        if (!sharedApi.topic().isBlank()) {
+            return sharedApi.topic();
+        }
+        var kafkaListener = method.getAnnotation(KafkaListener.class);
+        if (kafkaListener != null && kafkaListener.topics().length > 0) {
+            return kafkaListener.topics()[0];
+        }
+        log.warn("MQ exposed API [{}] has no topic defined via @SharedApi.topic or @KafkaListener.topics", sharedApi.name());
+        return "";
     }
 
     private List<EndpointDefinition> scanClientApis() {
