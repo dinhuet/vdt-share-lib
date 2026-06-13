@@ -4,6 +4,7 @@ import com.pm.sharedlib.config.VdtShareProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -107,6 +108,63 @@ class HmacSignatureVerifierTest {
                         .isEqualTo(RuntimeSecurityErrorCodes.AUTH_TIMESTAMP_EXPIRED));
     }
 
+    @Test
+    void shouldVerifyValidMqSignature() throws Exception {
+        var timestamp = String.valueOf(Instant.now().toEpochMilli());
+        var payload = "{\"amount\":100}".getBytes(StandardCharsets.UTF_8);
+        var headers = signedMqHeaders("orders.created", timestamp, "mq-nonce-1", payload);
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.setIfAbsent(
+                eq("vdt:hmac-nonce:key_demo_01:mq-nonce-1"), eq("1"), eq(300L), eq(TimeUnit.SECONDS)))
+                .thenReturn(true);
+        when(signingSecretService.decryptSigningSecret("encrypted-secret")).thenReturn(SIGNING_SECRET);
+
+        verifier.verifyMq(headers, "orders.created", payload, credential);
+    }
+
+    @Test
+    void shouldRejectInvalidMqSignature() throws Exception {
+        var timestamp = String.valueOf(Instant.now().toEpochMilli());
+        var payload = "{}".getBytes(StandardCharsets.UTF_8);
+        var headers = signedMqHeaders("orders.created", timestamp, "mq-nonce-2", payload, "bad-signature");
+        when(signingSecretService.decryptSigningSecret("encrypted-secret")).thenReturn(SIGNING_SECRET);
+
+        assertThatThrownBy(() -> verifier.verifyMq(headers, "orders.created", payload, credential))
+                .isInstanceOf(RuntimeSecurityException.class)
+                .satisfies(e -> assertThat(((RuntimeSecurityException) e).getErrorCode())
+                        .isEqualTo(RuntimeSecurityErrorCodes.AUTH_SIGNATURE_INVALID));
+    }
+
+    @Test
+    void shouldRejectMqMissingSignatureHeaders() {
+        var headers = new KafkaRuntimeAuthHeaders(new RecordHeaders());
+
+        assertThatThrownBy(() -> verifier.verifyMq(headers, "orders.created", new byte[0], credential))
+                .isInstanceOf(RuntimeSecurityException.class)
+                .satisfies(e -> assertThat(((RuntimeSecurityException) e).getErrorCode())
+                        .isEqualTo(RuntimeSecurityErrorCodes.AUTH_SIGNATURE_HEADER_MISSING));
+    }
+
+    @Test
+    void shouldRejectMqUnsupportedAlgorithm() throws Exception {
+        credential.setAlgorithm("PLAINTEXT");
+        var timestamp = String.valueOf(Instant.now().toEpochMilli());
+        var payload = "{}".getBytes(StandardCharsets.UTF_8);
+        var headers = signedMqHeaders("orders.created", timestamp, "mq-nonce-3", payload);
+
+        assertThatThrownBy(() -> verifier.verifyMq(headers, "orders.created", payload, credential))
+                .isInstanceOf(RuntimeSecurityException.class)
+                .satisfies(e -> assertThat(((RuntimeSecurityException) e).getErrorCode())
+                        .isEqualTo(RuntimeSecurityErrorCodes.AUTH_ALGORITHM_UNSUPPORTED));
+    }
+
+    @Test
+    void shouldSkipMqVerificationWhenHmacDisabled() {
+        properties.getRuntime().setHmacEnabled(false);
+
+        verifier.verifyMq(new KafkaRuntimeAuthHeaders(new RecordHeaders()), "orders.created", null, credential);
+    }
+
     private CachedBodyHttpServletRequest signedRequest(String timestamp, String nonce, String body) throws Exception {
         return signedRequest(timestamp, nonce, body, sign(timestamp, nonce, body));
     }
@@ -137,9 +195,45 @@ class HmacSignatureVerifierTest {
                 .encodeToString(mac.doFinal(canonical.getBytes(StandardCharsets.UTF_8)));
     }
 
+    private KafkaRuntimeAuthHeaders signedMqHeaders(String topic, String timestamp, String nonce, byte[] payload) throws Exception {
+        return signedMqHeaders(topic, timestamp, nonce, payload, signMq(topic, timestamp, nonce, payload));
+    }
+
+    private KafkaRuntimeAuthHeaders signedMqHeaders(
+            String topic,
+            String timestamp,
+            String nonce,
+            byte[] payload,
+            String signature) {
+        var headers = new RecordHeaders();
+        headers.add(RuntimeSecurityHeaders.CLIENT_ID, CLIENT_ID.toString().getBytes(StandardCharsets.UTF_8));
+        headers.add(RuntimeSecurityHeaders.KEY_ID, "key_demo_01".getBytes(StandardCharsets.UTF_8));
+        headers.add(RuntimeSecurityHeaders.TIMESTAMP, timestamp.getBytes(StandardCharsets.UTF_8));
+        headers.add(RuntimeSecurityHeaders.NONCE, nonce.getBytes(StandardCharsets.UTF_8));
+        headers.add(RuntimeSecurityHeaders.SIGNATURE, signature.getBytes(StandardCharsets.UTF_8));
+        return new KafkaRuntimeAuthHeaders(headers);
+    }
+
+    private String signMq(String topic, String timestamp, String nonce, byte[] payload) throws Exception {
+        var canonical = topic + "\n"
+                + CLIENT_ID + "\n"
+                + "key_demo_01\n"
+                + timestamp + "\n"
+                + nonce + "\n"
+                + bodyHash(payload);
+        var mac = Mac.getInstance("HmacSHA256");
+        mac.init(new SecretKeySpec(SIGNING_SECRET.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
+        return Base64.getUrlEncoder().withoutPadding()
+                .encodeToString(mac.doFinal(canonical.getBytes(StandardCharsets.UTF_8)));
+    }
+
     private String bodyHash(String body) throws Exception {
+        return bodyHash(body.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private String bodyHash(byte[] body) throws Exception {
         var digest = MessageDigest.getInstance("SHA-256");
         return Base64.getUrlEncoder().withoutPadding()
-                .encodeToString(digest.digest(body.getBytes(StandardCharsets.UTF_8)));
+                .encodeToString(digest.digest(body));
     }
 }

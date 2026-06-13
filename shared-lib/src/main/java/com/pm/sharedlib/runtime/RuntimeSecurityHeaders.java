@@ -8,8 +8,6 @@ public final class RuntimeSecurityHeaders {
     public static final String TIMESTAMP = "X-Timestamp";
     public static final String NONCE = "X-Nonce";
     public static final String SIGNATURE = "X-Signature";
-    public static final String CORRELATION_ID = "X-Correlation-Id";
-    public static final String RESPONSE_TOPIC = "X-Response-Topic";
 
     private RuntimeSecurityHeaders() {
     }

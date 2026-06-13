@@ -9,7 +9,7 @@ import com.pm.sharedlib.kafka.RegistrationEventProducer;
 import com.pm.sharedlib.runtime.AccessPolicyEvaluator;
 import com.pm.sharedlib.runtime.ClientAuthService;
 import com.pm.sharedlib.runtime.ClientPermissionChecker;
-import com.pm.sharedlib.runtime.ExposedMqSecurityAspect;
+import com.pm.sharedlib.runtime.ExposedMqSecurityInterceptor;
 import com.pm.sharedlib.runtime.HmacSignatureVerifier;
 import com.pm.sharedlib.runtime.MaxResponseSizeAdvice;
 import com.pm.sharedlib.runtime.MqSecurityErrorHandler;
@@ -129,32 +129,35 @@ public class VdtShareAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public ExposedMqSecurityAspect exposedMqSecurityAspect(
+    @ConditionalOnProperty(prefix = "vdt.share.runtime", name = "mq-interceptor-enabled", havingValue = "true", matchIfMissing = true)
+    public ExposedMqSecurityInterceptor exposedMqSecurityInterceptor(
             EndpointRegistry endpointRegistry,
             SecuritySettingsStore securitySettingsStore,
             AccessPolicyEvaluator accessPolicyEvaluator,
             ClientAuthService clientAuthService,
             ClientPermissionChecker clientPermissionChecker,
-            RateLimiter rateLimiter,
-            VdtShareProperties properties,
-            ObjectMapper objectMapper,
-            ObjectProvider<KafkaTemplate<String, String>> kafkaTemplateProvider) {
-        return new ExposedMqSecurityAspect(
+            RateLimiter rateLimiter) {
+        return new ExposedMqSecurityInterceptor(
                 endpointRegistry,
                 securitySettingsStore,
                 accessPolicyEvaluator,
                 clientAuthService,
                 clientPermissionChecker,
-                rateLimiter,
-                properties,
-                objectMapper,
-                kafkaTemplateProvider.getIfAvailable());
+                rateLimiter);
     }
 
     @Bean
     @ConditionalOnMissingBean
     public CommonErrorHandler mqSecurityErrorHandler() {
         return MqSecurityErrorHandler.create();
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "vdt.share.runtime", name = "mq-interceptor-enabled", havingValue = "true", matchIfMissing = true)
+    public MqSecurityKafkaFactoryBeanPostProcessor mqSecurityKafkaFactoryBeanPostProcessor(
+            ExposedMqSecurityInterceptor exposedMqSecurityInterceptor,
+            CommonErrorHandler mqSecurityErrorHandler) {
+        return new MqSecurityKafkaFactoryBeanPostProcessor(exposedMqSecurityInterceptor, mqSecurityErrorHandler);
     }
 
     @Bean

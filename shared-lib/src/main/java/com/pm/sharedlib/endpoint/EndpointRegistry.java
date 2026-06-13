@@ -6,6 +6,7 @@ import org.springframework.web.util.pattern.PathPatternParser;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -84,6 +85,16 @@ public class EndpointRegistry {
                 .findFirst();
     }
 
+    public Optional<EndpointDefinition> findExposedMqByTopic(String topic) {
+        if (topic == null || topic.isBlank()) {
+            return Optional.empty();
+        }
+        return exposedApis.stream()
+                .filter(endpoint -> "MQ".equalsIgnoreCase(endpoint.getProtocol()))
+                .filter(endpoint -> topic.equals(endpoint.getTopic()))
+                .findFirst();
+    }
+
     public Optional<EndpointDefinition> findClientHttp(String method, String destinationUrl) {
         var normalizedMethod = method == null ? "" : method.toUpperCase();
         return clientApis.stream()
@@ -131,6 +142,7 @@ public class EndpointRegistry {
     private void validate(List<EndpointDefinition> resolvedExposedApis, List<EndpointDefinition> resolvedClientApis) {
         var keys = new HashSet<String>();
         var ids = new HashSet<UUID>();
+        var exposedMqTopics = new HashMap<String, String>();
         for (var endpoint : concat(resolvedExposedApis, resolvedClientApis)) {
             if (endpoint.getName() == null || endpoint.getName().isBlank()) {
                 throw new IllegalStateException("Endpoint name must not be blank: " + endpoint.getEndpointKey());
@@ -140,6 +152,16 @@ public class EndpointRegistry {
             }
             if (!ids.add(endpoint.getEndpointId())) {
                 throw new IllegalStateException("Duplicate endpointId: " + endpoint.getEndpointId());
+            }
+            if (endpoint.getType() == EndpointType.EXPOSED
+                    && "MQ".equalsIgnoreCase(endpoint.getProtocol())
+                    && endpoint.getTopic() != null
+                    && !endpoint.getTopic().isBlank()) {
+                var previousKey = exposedMqTopics.putIfAbsent(endpoint.getTopic(), endpoint.getEndpointKey());
+                if (previousKey != null) {
+                    throw new IllegalStateException("Duplicate exposed MQ topic: " + endpoint.getTopic()
+                            + " (" + previousKey + ", " + endpoint.getEndpointKey() + ")");
+                }
             }
         }
     }

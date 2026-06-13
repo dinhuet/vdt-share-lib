@@ -16,6 +16,7 @@ public class VdtShareProperties {
     @FieldDefaults(level = lombok.AccessLevel.PRIVATE)
     public static class Runtime {
         boolean httpFilterEnabled = true;
+        boolean mqInterceptorEnabled = true;
         boolean failOpen = false;
         boolean hmacEnabled = false;
         long hmacMaxClockSkewSeconds = 300;

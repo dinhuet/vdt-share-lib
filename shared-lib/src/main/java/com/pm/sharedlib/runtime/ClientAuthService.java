@@ -54,6 +54,10 @@ public class ClientAuthService {
     }
 
     public AuthenticatedClient authenticate(RuntimeAuthHeaders headers) {
+        return authenticate(headers, null, null);
+    }
+
+    public AuthenticatedClient authenticate(RuntimeAuthHeaders headers, String topic, byte[] payloadBytes) {
         var clientId = parseClientId(requiredHeader(headers, RuntimeSecurityHeaders.CLIENT_ID));
         var keyId = requiredHeader(headers, RuntimeSecurityHeaders.KEY_ID);
         var apiKey = requiredHeader(headers, RuntimeSecurityHeaders.API_KEY);
@@ -67,6 +71,9 @@ public class ClientAuthService {
         validateApiKey(apiKey, credential);
         if (!clientId.equals(credential.getClientId())) {
             throw unauthorized(RuntimeSecurityErrorCodes.AUTH_CLIENT_MISMATCH, "Client id does not match credential");
+        }
+        if (hmacSignatureVerifier != null) {
+            hmacSignatureVerifier.verifyMq(headers, topic, payloadBytes, credential);
         }
 
         return AuthenticatedClient.builder()
