@@ -1,0 +1,55 @@
+{
+  "version" : 1,
+  "serviceName" : "order-service",
+  "generatedAt" : "2026-06-13T18:04:12.270301900",
+  "exposedApis" : [ {
+    "endpointId" : "7459c7df-9824-4063-8bd4-0fbfda41cbaa",
+    "endpointKey" : "EXPOSED:HTTP:POST:/api/orders",
+    "type" : "EXPOSED",
+    "protocol" : "HTTP",
+    "name" : "create-order-v2",
+    "method" : "POST",
+    "path" : "/api/orders",
+    "destinationUrl" : null,
+    "topic" : null,
+    "handlerClass" : "com.pm.demo.OrderController",
+    "handlerMethod" : "createOrder"
+  }, {
+    "endpointId" : "5d72dd70-cd77-4375-a3ef-23815226406a",
+    "endpointKey" : "EXPOSED:HTTP:GET:/api/orders",
+    "type" : "EXPOSED",
+    "protocol" : "HTTP",
+    "name" : "get-orders",
+    "method" : "GET",
+    "path" : "/api/orders",
+    "destinationUrl" : null,
+    "topic" : null,
+    "handlerClass" : "com.pm.demo.OrderController",
+    "handlerMethod" : "getOrders"
+  }, {
+    "endpointId" : "c2289336-f615-41b0-b694-0b99d6e0423e",
+    "endpointKey" : "EXPOSED:MQ:demo.orders:com.pm.demo.OrderMqListener#onCreateOrder",
+    "type" : "EXPOSED",
+    "protocol" : "MQ",
+    "name" : "create-order-mq",
+    "method" : null,
+    "path" : null,
+    "destinationUrl" : null,
+    "topic" : "demo.orders",
+    "handlerClass" : "com.pm.demo.OrderMqListener",
+    "handlerMethod" : "onCreateOrder"
+  } ],
+  "clientApis" : [ {
+    "endpointId" : "b9cc22c8-87cb-49ad-a293-cef474779db1",
+    "endpointKey" : "CLIENT:HTTP:POST:https://partner.com/webhook",
+    "type" : "CLIENT",
+    "protocol" : "HTTP",
+    "name" : "notify-partner",
+    "method" : "POST",
+    "path" : null,
+    "destinationUrl" : "https://partner.com/webhook",
+    "topic" : null,
+    "handlerClass" : "com.pm.demo.OrderController",
+    "handlerMethod" : "notifyPartner"
+  } ]
+}

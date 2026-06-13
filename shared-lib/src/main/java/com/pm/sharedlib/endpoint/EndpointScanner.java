@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.util.ClassUtils;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
@@ -67,7 +68,8 @@ public class EndpointScanner {
         var endpoints = new ArrayList<EndpointDefinition>();
         for (var beanName : beanFactory.getBeanDefinitionNames()) {
             var bean = beanFactory.getBean(beanName);
-            for (var method : bean.getClass().getMethods()) {
+            var targetClass = ClassUtils.getUserClass(bean);
+            for (var method : targetClass.getMethods()) {
                 var sharedApi = method.getAnnotation(SharedApi.class);
                 if (sharedApi == null || !"MQ".equalsIgnoreCase(sharedApi.protocol())) {
                     continue;
@@ -78,7 +80,7 @@ public class EndpointScanner {
                         .protocol("MQ")
                         .name(sharedApi.name())
                         .topic(topic)
-                        .handlerClass(bean.getClass().getName())
+                        .handlerClass(targetClass.getName())
                         .handlerMethod(method.getName())
                         .build());
             }
@@ -102,7 +104,8 @@ public class EndpointScanner {
         var endpoints = new ArrayList<EndpointDefinition>();
         for (var beanName : beanFactory.getBeanDefinitionNames()) {
             var bean = beanFactory.getBean(beanName);
-            for (var method : bean.getClass().getMethods()) {
+            var targetClass = ClassUtils.getUserClass(bean);
+            for (var method : targetClass.getMethods()) {
                 var clientCall = method.getAnnotation(ClientCall.class);
                 if (clientCall == null) {
                     continue;
@@ -113,7 +116,7 @@ public class EndpointScanner {
                         .name(clientCall.name())
                         .method(clientCall.method())
                         .destinationUrl(clientCall.destinationUrl())
-                        .handlerClass(bean.getClass().getName())
+                        .handlerClass(targetClass.getName())
                         .handlerMethod(method.getName())
                         .build());
             }
@@ -126,12 +129,6 @@ public class EndpointScanner {
         if (pathPatterns != null && !pathPatterns.getPatternValues().isEmpty()) {
             return pathPatterns.getPatternValues();
         }
-
-        var patterns = info.getPatternsCondition();
-        if (patterns != null && !patterns.getPatterns().isEmpty()) {
-            return patterns.getPatterns();
-        }
-
         return List.of();
     }
 
