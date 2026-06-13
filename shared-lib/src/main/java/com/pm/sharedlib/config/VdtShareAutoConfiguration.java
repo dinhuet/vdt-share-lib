@@ -9,8 +9,10 @@ import com.pm.sharedlib.kafka.RegistrationEventProducer;
 import com.pm.sharedlib.runtime.AccessPolicyEvaluator;
 import com.pm.sharedlib.runtime.ClientAuthService;
 import com.pm.sharedlib.runtime.ClientPermissionChecker;
+import com.pm.sharedlib.runtime.ExposedMqSecurityAspect;
 import com.pm.sharedlib.runtime.HmacSignatureVerifier;
 import com.pm.sharedlib.runtime.MaxResponseSizeAdvice;
+import com.pm.sharedlib.runtime.MqSecurityErrorHandler;
 import com.pm.sharedlib.runtime.RateLimiter;
 import com.pm.sharedlib.runtime.SecurityAuthFilter;
 import com.pm.sharedlib.runtime.SecuritySettingsStore;
@@ -26,6 +28,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.Environment;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.listener.CommonErrorHandler;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
 import java.nio.file.Path;
@@ -122,6 +125,36 @@ public class VdtShareAutoConfiguration {
     @ConditionalOnMissingBean
     public RateLimiter rateLimiter(StringRedisTemplate redisTemplate, VdtShareProperties properties) {
         return new RateLimiter(redisTemplate, properties);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public ExposedMqSecurityAspect exposedMqSecurityAspect(
+            EndpointRegistry endpointRegistry,
+            SecuritySettingsStore securitySettingsStore,
+            AccessPolicyEvaluator accessPolicyEvaluator,
+            ClientAuthService clientAuthService,
+            ClientPermissionChecker clientPermissionChecker,
+            RateLimiter rateLimiter,
+            VdtShareProperties properties,
+            ObjectMapper objectMapper,
+            ObjectProvider<KafkaTemplate<String, String>> kafkaTemplateProvider) {
+        return new ExposedMqSecurityAspect(
+                endpointRegistry,
+                securitySettingsStore,
+                accessPolicyEvaluator,
+                clientAuthService,
+                clientPermissionChecker,
+                rateLimiter,
+                properties,
+                objectMapper,
+                kafkaTemplateProvider.getIfAvailable());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public CommonErrorHandler mqSecurityErrorHandler() {
+        return MqSecurityErrorHandler.create();
     }
 
     @Bean

@@ -18,6 +18,10 @@ public class KafkaRuntimeAuthHeaders implements RuntimeAuthHeaders {
         if (header == null) {
             return null;
         }
-        return new String(header.value(), StandardCharsets.UTF_8);
+        var bytes = header.value();
+        if (bytes == null) {
+            return null;
+        }
+        return new String(bytes, StandardCharsets.UTF_8);
     }
 }
