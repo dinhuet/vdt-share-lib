@@ -8,7 +8,7 @@
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
       </profile>
-      <profile name="Annotation profile for vdt-demo" enabled="true">
+      <profile name="Annotation profile for vdt-client" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
@@ -16,8 +16,9 @@
           <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.46/lombok-1.18.46.jar" />
         </processorPath>
         <module name="shared-lib" />
-        <module name="vdt-demo" />
+        <module name="vdt-client" />
         <module name="be" />
+        <module name="vdt-demo" />
       </profile>
     </annotationProcessing>
   </component>
@@ -25,6 +26,7 @@
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
       <module name="be" options="-parameters" />
       <module name="shared-lib" options="-parameters" />
+      <module name="vdt-client" options="-parameters" />
       <module name="vdt-demo" options="-parameters" />
     </option>
   </component>
