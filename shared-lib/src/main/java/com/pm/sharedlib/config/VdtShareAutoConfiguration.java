@@ -13,6 +13,7 @@ import com.pm.sharedlib.runtime.ClientCallRuntimeAspect;
 import com.pm.sharedlib.runtime.ClientPermissionChecker;
 import com.pm.sharedlib.runtime.ExposedMqSecurityInterceptor;
 import com.pm.sharedlib.runtime.HmacSignatureVerifier;
+import com.pm.sharedlib.runtime.KafkaOutboundMetadataEnricher;
 import com.pm.sharedlib.runtime.MaxResponseSizeAdvice;
 import com.pm.sharedlib.runtime.MqSecurityErrorHandler;
 import com.pm.sharedlib.runtime.RateLimiter;
@@ -141,6 +142,12 @@ public class VdtShareAutoConfiguration {
     @ConditionalOnMissingBean
     public ClientCallRuntimeAspect clientCallRuntimeAspect(ClientApiRuntimePolicyService clientApiRuntimePolicyService) {
         return new ClientCallRuntimeAspect(clientApiRuntimePolicyService);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public KafkaOutboundMetadataEnricher kafkaOutboundMetadataEnricher() {
+        return new KafkaOutboundMetadataEnricher();
     }
 
     @Bean

@@ -1,20 +1,8 @@
 {
   "version" : 1,
   "serviceName" : "order-service",
-  "generatedAt" : "2026-06-13T18:04:12.270301900",
+  "generatedAt" : "2026-06-14T21:12:44.403801400",
   "exposedApis" : [ {
-    "endpointId" : "7459c7df-9824-4063-8bd4-0fbfda41cbaa",
-    "endpointKey" : "EXPOSED:HTTP:POST:/api/orders",
-    "type" : "EXPOSED",
-    "protocol" : "HTTP",
-    "name" : "create-order-v2",
-    "method" : "POST",
-    "path" : "/api/orders",
-    "destinationUrl" : null,
-    "topic" : null,
-    "handlerClass" : "com.pm.demo.OrderController",
-    "handlerMethod" : "createOrder"
-  }, {
     "endpointId" : "5d72dd70-cd77-4375-a3ef-23815226406a",
     "endpointKey" : "EXPOSED:HTTP:GET:/api/orders",
     "type" : "EXPOSED",
@@ -26,6 +14,18 @@
     "topic" : null,
     "handlerClass" : "com.pm.demo.OrderController",
     "handlerMethod" : "getOrders"
+  }, {
+    "endpointId" : "7459c7df-9824-4063-8bd4-0fbfda41cbaa",
+    "endpointKey" : "EXPOSED:HTTP:POST:/api/orders",
+    "type" : "EXPOSED",
+    "protocol" : "HTTP",
+    "name" : "create-order-v2",
+    "method" : "POST",
+    "path" : "/api/orders",
+    "destinationUrl" : null,
+    "topic" : null,
+    "handlerClass" : "com.pm.demo.OrderController",
+    "handlerMethod" : "createOrder"
   }, {
     "endpointId" : "c2289336-f615-41b0-b694-0b99d6e0423e",
     "endpointKey" : "EXPOSED:MQ:demo.orders:com.pm.demo.OrderMqListener#onCreateOrder",
@@ -48,21 +48,57 @@
     "method" : "POST",
     "path" : null,
     "destinationUrl" : "https://partner.com/webhook",
-    "topic" : null,
+    "topic" : "",
     "handlerClass" : "com.pm.demo.OrderController",
     "handlerMethod" : "notifyPartner"
   }, {
-    "endpointId" : "0746b62f-a186-4cd9-94b5-6a899f6f2e30",
-    "endpointKey" : "CLIENT:HTTP:POST:http://localhost:8083/api/client/outbound/orders",
+    "endpointId" : "9937765b-180d-4a55-86d6-525521915d5e",
+    "endpointKey" : "CLIENT:MQ:vdt-client.orders",
     "type" : "CLIENT",
-    "protocol" : "HTTP",
-    "name" : "notify-vdt-client",
-    "method" : "POST",
+    "protocol" : "MQ",
+    "name" : "publish-vdt-client-order-mq",
+    "method" : "",
     "path" : null,
-    "destinationUrl" : "http://localhost:8083/api/client/outbound/orders",
-    "topic" : null,
-    "handlerClass" : "com.pm.demo.VdtClientOutboundClient",
-    "handlerMethod" : "notifyOrder"
+    "destinationUrl" : "",
+    "topic" : "vdt-client.orders",
+    "handlerClass" : "com.pm.demo.VdtClientMqPublisher",
+    "handlerMethod" : "publishOrder"
+  }, {
+    "endpointId" : "66ab2d62-3cba-471b-b668-6452f5adfa37",
+    "endpointKey" : "CLIENT:MQ:vdt-client.orders.failure",
+    "type" : "CLIENT",
+    "protocol" : "MQ",
+    "name" : "publish-vdt-client-order-mq-failure",
+    "method" : "",
+    "path" : null,
+    "destinationUrl" : "",
+    "topic" : "vdt-client.orders.failure",
+    "handlerClass" : "com.pm.demo.VdtClientMqPublisher",
+    "handlerMethod" : "publishOrderFailure"
+  }, {
+    "endpointId" : "85fb11ee-ac30-4182-aaa3-4283b3de279b",
+    "endpointKey" : "CLIENT:MQ:vdt-client.orders.timeout",
+    "type" : "CLIENT",
+    "protocol" : "MQ",
+    "name" : "publish-vdt-client-order-mq-timeout",
+    "method" : "",
+    "path" : null,
+    "destinationUrl" : "",
+    "topic" : "vdt-client.orders.timeout",
+    "handlerClass" : "com.pm.demo.VdtClientMqPublisher",
+    "handlerMethod" : "publishOrderTimeout"
+  }, {
+    "endpointId" : "4b7e371f-5238-421e-adcb-0eb440e61bb5",
+    "endpointKey" : "CLIENT:MQ:vdt-client.orders.retry",
+    "type" : "CLIENT",
+    "protocol" : "MQ",
+    "name" : "publish-vdt-client-order-mq-retry",
+    "method" : "",
+    "path" : null,
+    "destinationUrl" : "",
+    "topic" : "vdt-client.orders.retry",
+    "handlerClass" : "com.pm.demo.VdtClientMqPublisher",
+    "handlerMethod" : "publishOrderWithRetry"
   }, {
     "endpointId" : "2ce9b1b7-403a-4391-81a3-f4ee809fcd1c",
     "endpointKey" : "CLIENT:HTTP:POST:http://localhost:8083/api/client/outbound/orders?failTimes=2",
@@ -72,8 +108,20 @@
     "method" : "POST",
     "path" : null,
     "destinationUrl" : "http://localhost:8083/api/client/outbound/orders?failTimes=2",
-    "topic" : null,
+    "topic" : "",
     "handlerClass" : "com.pm.demo.VdtClientOutboundClient",
     "handlerMethod" : "notifyOrderWithRetry"
+  }, {
+    "endpointId" : "0746b62f-a186-4cd9-94b5-6a899f6f2e30",
+    "endpointKey" : "CLIENT:HTTP:POST:http://localhost:8083/api/client/outbound/orders",
+    "type" : "CLIENT",
+    "protocol" : "HTTP",
+    "name" : "notify-vdt-client",
+    "method" : "POST",
+    "path" : null,
+    "destinationUrl" : "http://localhost:8083/api/client/outbound/orders",
+    "topic" : "",
+    "handlerClass" : "com.pm.demo.VdtClientOutboundClient",
+    "handlerMethod" : "notifyOrder"
   } ]
 }

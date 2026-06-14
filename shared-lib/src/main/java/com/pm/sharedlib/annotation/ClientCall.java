@@ -10,6 +10,7 @@ import java.lang.annotation.Target;
 public @interface ClientCall {
     String name();
     String destinationUrl() default "";
+    String topic() default "";
     String method() default "";
     String protocol() default "HTTP";
 }

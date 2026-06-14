@@ -22,6 +22,7 @@ class ClientApiRuntimePolicyServiceTest {
     private static final UUID ENDPOINT_ID = UUID.randomUUID();
     private static final String METHOD = "POST";
     private static final String DESTINATION_URL = "https://orders.example/api";
+    private static final String TOPIC = "orders.created";
 
     @Mock EndpointRegistry endpointRegistry;
     @Mock SecuritySettingsStore settingsStore;
@@ -81,6 +82,36 @@ class ClientApiRuntimePolicyServiceTest {
         assertThat(service.resolve(METHOD, DESTINATION_URL)).isSameAs(config);
     }
 
+    @Test
+    void resolveMq_shouldReturnValidMqConfig() {
+        var mqEndpoint = EndpointDefinition.builder()
+                .endpointId(ENDPOINT_ID)
+                .type(EndpointType.CLIENT)
+                .protocol("MQ")
+                .topic(TOPIC)
+                .build();
+        var mqConfig = ClientApiRuntimeConfig.builder()
+                .endpointId(ENDPOINT_ID)
+                .protocol("MQ")
+                .topic(TOPIC)
+                .enabled(true)
+                .syncStatus("ACTIVE")
+                .timeoutMs(1000)
+                .build();
+        when(endpointRegistry.findClientMq(TOPIC)).thenReturn(Optional.of(mqEndpoint));
+        when(settingsStore.getClientApi(ENDPOINT_ID)).thenReturn(Optional.of(mqConfig));
+
+        assertThat(service.resolveMq(TOPIC)).isSameAs(mqConfig);
+    }
+
+    @Test
+    void resolveMq_shouldRejectDisabledInactiveProtocolAndTopicMismatch() {
+        assertMqRejected(validMqConfig().toBuilder().enabled(false).build(), OutboundErrorCode.CONFIG_DISABLED);
+        assertMqRejected(validMqConfig().toBuilder().syncStatus("STALE").build(), OutboundErrorCode.CONFIG_INACTIVE);
+        assertMqRejected(validMqConfig().toBuilder().protocol("HTTP").build(), OutboundErrorCode.PROTOCOL_MISMATCH);
+        assertMqRejected(validMqConfig().toBuilder().topic("orders.other").build(), OutboundErrorCode.TOPIC_MISMATCH);
+    }
+
     private void assertRejected(ClientApiRuntimeConfig rejectedConfig, OutboundErrorCode expectedCode) {
         setupEndpointAndConfig(rejectedConfig);
 
@@ -95,6 +126,22 @@ class ClientApiRuntimePolicyServiceTest {
         when(settingsStore.getClientApi(ENDPOINT_ID)).thenReturn(Optional.of(runtimeConfig));
     }
 
+    private void assertMqRejected(ClientApiRuntimeConfig rejectedConfig, OutboundErrorCode expectedCode) {
+        var mqEndpoint = EndpointDefinition.builder()
+                .endpointId(ENDPOINT_ID)
+                .type(EndpointType.CLIENT)
+                .protocol("MQ")
+                .topic(TOPIC)
+                .build();
+        when(endpointRegistry.findClientMq(TOPIC)).thenReturn(Optional.of(mqEndpoint));
+        when(settingsStore.getClientApi(ENDPOINT_ID)).thenReturn(Optional.of(rejectedConfig));
+
+        assertThatThrownBy(() -> service.resolveMq(TOPIC))
+                .isInstanceOf(OutboundException.class)
+                .extracting("errorCode")
+                .isEqualTo(expectedCode);
+    }
+
     private ClientApiRuntimeConfig validConfig() {
         return ClientApiRuntimeConfig.builder()
                 .id(UUID.randomUUID())
@@ -104,6 +151,18 @@ class ClientApiRuntimePolicyServiceTest {
                 .destinationUrl(DESTINATION_URL)
                 .enabled(true)
                 .syncStatus("ACTIVE")
+                .build();
+    }
+
+    private ClientApiRuntimeConfig validMqConfig() {
+        return ClientApiRuntimeConfig.builder()
+                .id(UUID.randomUUID())
+                .endpointId(ENDPOINT_ID)
+                .protocol("MQ")
+                .topic(TOPIC)
+                .enabled(true)
+                .syncStatus("ACTIVE")
+                .timeoutMs(1000)
                 .build();
     }
 }

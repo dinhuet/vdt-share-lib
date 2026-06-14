@@ -41,6 +41,21 @@ class EndpointRegistryTest {
     }
 
     @Test
+    void findClientMq_shouldReturnMqClientEndpointByTopic() {
+        var clientMq = EndpointDefinition.builder()
+                .type(EndpointType.CLIENT)
+                .protocol("MQ")
+                .name("publish-orders")
+                .topic("orders.created")
+                .build();
+        var registry = initializedRegistry(List.of(), List.of(clientMq));
+
+        assertThat(registry.findClientMq("orders.created")).isPresent();
+        assertThat(registry.findClientMq(" ")).isEmpty();
+        assertThat(registry.findClientMq("orders.other")).isEmpty();
+    }
+
+    @Test
     void initialize_shouldRejectDuplicateNonBlankExposedMqTopics() {
         var scanner = mock(EndpointScanner.class);
         var manifestStore = mock(EndpointManifestStore.class);
@@ -56,10 +71,14 @@ class EndpointRegistryTest {
     }
 
     private EndpointRegistry initializedRegistry(List<EndpointDefinition> exposedApis) {
+        return initializedRegistry(exposedApis, List.of());
+    }
+
+    private EndpointRegistry initializedRegistry(List<EndpointDefinition> exposedApis, List<EndpointDefinition> clientApis) {
         var scanner = mock(EndpointScanner.class);
         var manifestStore = mock(EndpointManifestStore.class);
         when(manifestStore.read()).thenReturn(Optional.empty());
-        when(scanner.scan()).thenReturn(new EndpointScanner.ScannedEndpoints(exposedApis, List.of()));
+        when(scanner.scan()).thenReturn(new EndpointScanner.ScannedEndpoints(exposedApis, clientApis));
         var registry = new EndpointRegistry(scanner, manifestStore);
         registry.initialize("test-service");
         return registry;

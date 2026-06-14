@@ -11,9 +11,11 @@ import java.util.List;
 public class OrderController {
 
     private final VdtClientOutboundClient vdtClientOutboundClient;
+    private final VdtClientMqPublisher vdtClientMqPublisher;
 
-    public OrderController(VdtClientOutboundClient vdtClientOutboundClient) {
+    public OrderController(VdtClientOutboundClient vdtClientOutboundClient, VdtClientMqPublisher vdtClientMqPublisher) {
         this.vdtClientOutboundClient = vdtClientOutboundClient;
+        this.vdtClientMqPublisher = vdtClientMqPublisher;
     }
 
     @SharedApi(name = "get-orders", path = "/api/orders", method = "GET")
@@ -36,6 +38,34 @@ public class OrderController {
     @PostMapping("/notify-client-retry")
     public String notifyClientRetry(@RequestBody String order) {
         return vdtClientOutboundClient.notifyOrderWithRetry(order);
+    }
+
+    @PostMapping("/publish-client-mq")
+    public String publishClientMq(@RequestBody String order) {
+        vdtClientMqPublisher.publishOrder(order);
+        return "published to topic " + VdtClientMqPublisher.VDT_CLIENT_ORDER_TOPIC + ": " + order;
+    }
+
+    @PostMapping("/publish-client-mq/fail")
+    public String publishClientMqFailure(@RequestBody String order) {
+        vdtClientMqPublisher.publishOrderFailure(order);
+        return "unexpected success for topic " + VdtClientMqPublisher.VDT_CLIENT_ORDER_FAILURE_TOPIC;
+    }
+
+    @PostMapping("/publish-client-mq/timeout")
+    public String publishClientMqTimeout(@RequestBody String order) {
+        vdtClientMqPublisher.publishOrderTimeout(order);
+        return "unexpected success for topic " + VdtClientMqPublisher.VDT_CLIENT_ORDER_TIMEOUT_TOPIC;
+    }
+
+    @PostMapping("/publish-client-mq/retry")
+    public String publishClientMqRetry(
+            @RequestBody String order,
+            @RequestParam(defaultValue = "2") int failTimes) {
+        vdtClientMqPublisher.resetRetryAttempts();
+        vdtClientMqPublisher.publishOrderWithRetry(order, failTimes);
+        return "published to topic " + VdtClientMqPublisher.VDT_CLIENT_ORDER_RETRY_TOPIC
+                + " after simulated failures=" + failTimes + ": " + order;
     }
 
     @ClientCall(name = "notify-partner", destinationUrl = "https://partner.com/webhook", method = "POST")

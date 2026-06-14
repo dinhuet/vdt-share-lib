@@ -105,6 +105,16 @@ public class EndpointRegistry {
                 .findFirst();
     }
 
+    public Optional<EndpointDefinition> findClientMq(String topic) {
+        if (topic == null || topic.isBlank()) {
+            return Optional.empty();
+        }
+        return clientApis.stream()
+                .filter(endpoint -> "MQ".equalsIgnoreCase(endpoint.getProtocol()))
+                .filter(endpoint -> topic.equals(endpoint.getTopic()))
+                .findFirst();
+    }
+
     private List<EndpointDefinition> resolveEndpointIds(List<EndpointDefinition> endpoints, EndpointIdResolver resolver) {
         return endpoints.stream()
                 .map(endpoint -> {

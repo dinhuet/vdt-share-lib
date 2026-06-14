@@ -2,3 +2,4 @@ com\pm\demo\DemoApplication.class
 com\pm\demo\OrderController.class
 com\pm\demo\OrderMqController.class
 com\pm\demo\OrderMqListener.class
+com\pm\demo\VdtClientMqPublisher.class

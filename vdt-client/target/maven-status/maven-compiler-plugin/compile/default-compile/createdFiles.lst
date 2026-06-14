@@ -1,3 +1,4 @@
 com\pm\client\ClientRunner.class
 com\pm\client\KafkaClientService.class
+com\pm\client\VdtClientOrderMqListener.class
 com\pm\client\ClientApplication.class

@@ -116,6 +116,7 @@ public class EndpointScanner {
                         .name(clientCall.name())
                         .method(clientCall.method())
                         .destinationUrl(clientCall.destinationUrl())
+                        .topic(clientCall.topic())
                         .handlerClass(targetClass.getName())
                         .handlerMethod(method.getName())
                         .build());
