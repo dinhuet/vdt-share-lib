@@ -98,7 +98,8 @@ public class EndpointRegistry {
     public Optional<EndpointDefinition> findClientHttp(String method, String destinationUrl) {
         var normalizedMethod = method == null ? "" : method.toUpperCase();
         return clientApis.stream()
-                .filter(endpoint -> "HTTP".equalsIgnoreCase(endpoint.getProtocol()))
+                .filter(endpoint -> "HTTP".equalsIgnoreCase(endpoint.getProtocol())
+                        || "WEBHOOK".equalsIgnoreCase(endpoint.getProtocol()))
                 .filter(endpoint -> normalizedMethod.equalsIgnoreCase(endpoint.getMethod()))
                 .filter(endpoint -> destinationUrl != null && destinationUrl.equals(endpoint.getDestinationUrl()))
                 .findFirst();

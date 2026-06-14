@@ -7,7 +7,9 @@ import com.pm.sharedlib.endpoint.EndpointRegistry;
 import com.pm.sharedlib.endpoint.EndpointScanner;
 import com.pm.sharedlib.kafka.RegistrationEventProducer;
 import com.pm.sharedlib.runtime.AccessPolicyEvaluator;
+import com.pm.sharedlib.runtime.ClientApiRuntimePolicyService;
 import com.pm.sharedlib.runtime.ClientAuthService;
+import com.pm.sharedlib.runtime.ClientCallRuntimeAspect;
 import com.pm.sharedlib.runtime.ClientPermissionChecker;
 import com.pm.sharedlib.runtime.ExposedMqSecurityInterceptor;
 import com.pm.sharedlib.runtime.HmacSignatureVerifier;
@@ -125,6 +127,20 @@ public class VdtShareAutoConfiguration {
     @ConditionalOnMissingBean
     public RateLimiter rateLimiter(StringRedisTemplate redisTemplate, VdtShareProperties properties) {
         return new RateLimiter(redisTemplate, properties);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public ClientApiRuntimePolicyService clientApiRuntimePolicyService(
+            EndpointRegistry endpointRegistry,
+            SecuritySettingsStore securitySettingsStore) {
+        return new ClientApiRuntimePolicyService(endpointRegistry, securitySettingsStore);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public ClientCallRuntimeAspect clientCallRuntimeAspect(ClientApiRuntimePolicyService clientApiRuntimePolicyService) {
+        return new ClientCallRuntimeAspect(clientApiRuntimePolicyService);
     }
 
     @Bean

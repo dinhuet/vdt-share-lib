@@ -1,0 +1,13 @@
+package com.pm.sharedlib.runtime;
+
+public enum OutboundErrorCode {
+    ENDPOINT_NOT_REGISTERED,
+    CONFIG_MISSING,
+    CONFIG_DISABLED,
+    CONFIG_INACTIVE,
+    PROTOCOL_MISMATCH,
+    METHOD_MISMATCH,
+    DESTINATION_URL_MISMATCH,
+    RETRY_EXHAUSTED,
+    INVOCATION_FAILED
+}

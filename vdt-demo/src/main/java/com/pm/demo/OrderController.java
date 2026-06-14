@@ -10,6 +10,12 @@ import java.util.List;
 @RequestMapping("/api/orders")
 public class OrderController {
 
+    private final VdtClientOutboundClient vdtClientOutboundClient;
+
+    public OrderController(VdtClientOutboundClient vdtClientOutboundClient) {
+        this.vdtClientOutboundClient = vdtClientOutboundClient;
+    }
+
     @SharedApi(name = "get-orders", path = "/api/orders", method = "GET")
     @GetMapping
     public List<String> getOrders() {
@@ -20,6 +26,16 @@ public class OrderController {
     @PostMapping
     public String createOrder(@RequestBody String order) {
         return "created: " + order;
+    }
+
+    @PostMapping("/notify-client")
+    public String notifyClient(@RequestBody String order) {
+        return vdtClientOutboundClient.notifyOrder(order);
+    }
+
+    @PostMapping("/notify-client-retry")
+    public String notifyClientRetry(@RequestBody String order) {
+        return vdtClientOutboundClient.notifyOrderWithRetry(order);
     }
 
     @ClientCall(name = "notify-partner", destinationUrl = "https://partner.com/webhook", method = "POST")

@@ -31,6 +31,13 @@ public class SecuritySettingsStore {
         return readValue(buildKey(properties.getRuntime().getExposedApiKeyPrefix(), endpointId), ExposedApiRuntimeConfig.class);
     }
 
+    public Optional<ClientApiRuntimeConfig> getClientApi(UUID endpointId) {
+        if (endpointId == null) {
+            return Optional.empty();
+        }
+        return readValue(buildKey(properties.getRuntime().getClientApiKeyPrefix(), endpointId), ClientApiRuntimeConfig.class);
+    }
+
     public List<AccessPolicyRuntimeConfig> getAccessPolicies(UUID exposedApiId) {
         if (exposedApiId == null) {
             return List.of();

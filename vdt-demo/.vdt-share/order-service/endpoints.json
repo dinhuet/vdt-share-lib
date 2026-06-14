@@ -51,5 +51,29 @@
     "topic" : null,
     "handlerClass" : "com.pm.demo.OrderController",
     "handlerMethod" : "notifyPartner"
+  }, {
+    "endpointId" : "0746b62f-a186-4cd9-94b5-6a899f6f2e30",
+    "endpointKey" : "CLIENT:HTTP:POST:http://localhost:8083/api/client/outbound/orders",
+    "type" : "CLIENT",
+    "protocol" : "HTTP",
+    "name" : "notify-vdt-client",
+    "method" : "POST",
+    "path" : null,
+    "destinationUrl" : "http://localhost:8083/api/client/outbound/orders",
+    "topic" : null,
+    "handlerClass" : "com.pm.demo.VdtClientOutboundClient",
+    "handlerMethod" : "notifyOrder"
+  }, {
+    "endpointId" : "2ce9b1b7-403a-4391-81a3-f4ee809fcd1c",
+    "endpointKey" : "CLIENT:HTTP:POST:http://localhost:8083/api/client/outbound/orders?failTimes=2",
+    "type" : "CLIENT",
+    "protocol" : "HTTP",
+    "name" : "notify-vdt-client-retry",
+    "method" : "POST",
+    "path" : null,
+    "destinationUrl" : "http://localhost:8083/api/client/outbound/orders?failTimes=2",
+    "topic" : null,
+    "handlerClass" : "com.pm.demo.VdtClientOutboundClient",
+    "handlerMethod" : "notifyOrderWithRetry"
   } ]
 }

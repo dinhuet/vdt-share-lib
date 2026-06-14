@@ -22,6 +22,7 @@ public class VdtShareProperties {
         long hmacMaxClockSkewSeconds = 300;
         String credentialEncryptionKey;
         String exposedApiKeyPrefix = "vdt:exposed-api";
+        String clientApiKeyPrefix = "vdt:client-api";
         String accessPolicyKeyPrefix = "vdt:access-policy";
         String keyIdPrefix = "vdt:key-id";
         String clientPermissionKeyPrefix = "vdt:client-permission";
