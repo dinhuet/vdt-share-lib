@@ -11,6 +11,7 @@ public class VdtShareProperties {
     boolean enabled = true;
     String endpointManifestPath = "./.vdt-share/${spring.application.name}/endpoints.json";
     Runtime runtime = new Runtime();
+    Audit audit = new Audit();
 
     @Data
     @FieldDefaults(level = lombok.AccessLevel.PRIVATE)
@@ -28,5 +29,20 @@ public class VdtShareProperties {
         String clientPermissionKeyPrefix = "vdt:client-permission";
         String rateLimitKeyPrefix = "vdt:rate-limit";
         String nonceKeyPrefix = "vdt:hmac-nonce";
+    }
+
+    @Data
+    @FieldDefaults(level = lombok.AccessLevel.PRIVATE)
+    public static class Audit {
+        boolean enabled = true;
+        boolean logLocal = true;
+        Kafka kafka = new Kafka();
+
+        @Data
+        @FieldDefaults(level = lombok.AccessLevel.PRIVATE)
+        public static class Kafka {
+            boolean enabled = true;
+            String topic = "security.logs";
+        }
     }
 }
