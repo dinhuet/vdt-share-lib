@@ -7,15 +7,21 @@ const navItems = [
   ['Client APIs', '▱', ROUTES.CLIENT_APIS],
   ['Default Configs', '⚙', ROUTES.DEFAULT_CONFIGS],
   ['Security Policies', '⬟', ROUTES.ACCESS_POLICIES],
-  ['Rate Limit', '◴', 'disabled-rate'],
-  ['Access Control', '⬡', 'disabled-access'],
-  ['Logs', '▤', 'disabled-logs'],
-  ['Anomaly Detection', '⌁', 'disabled-anomaly'],
-  ['Alerts', '♢', 'disabled-alerts'],
-  ['Retry & Rollback', '↻', 'disabled-retry'],
-  ['Kibana Reports', '▥', 'disabled-kibana'],
-  ['Settings', '⚙', 'disabled-settings'],
 ];
+
+function getDisplayName(user) {
+  return user?.name || user?.username || 'Admin User';
+}
+
+function getInitials(user) {
+  return getDisplayName(user)
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase();
+}
 
 export default function Sidebar({ activeRoute, onRouteChange, user }) {
   return (
@@ -25,25 +31,21 @@ export default function Sidebar({ activeRoute, onRouteChange, user }) {
         <span>Platform Engineering</span>
       </div>
       <nav className="side-nav">
-        {navItems.map(([label, icon, route]) => {
-          const disabled = route.startsWith('disabled');
-          return (
-            <button
-              key={label}
-              className={`nav-item ${activeRoute === route ? 'active' : ''}`}
-              disabled={disabled}
-              type="button"
-              onClick={() => onRouteChange(route)}
-            >
-              <span>{icon}</span>
-              {label}
-            </button>
-          );
-        })}
+        {navItems.map(([label, icon, route]) => (
+          <button
+            key={label}
+            className={`nav-item ${activeRoute === route ? 'active' : ''}`}
+            type="button"
+            onClick={() => onRouteChange(route)}
+          >
+            <span>{icon}</span>
+            {label}
+          </button>
+        ))}
       </nav>
       <div className="sidebar-user">
-        <div>{(user?.name || user?.username || 'JD').slice(0, 2).toUpperCase()}</div>
-        <span>{user?.name || user?.username || 'John Doe'}</span>
+        <div>{getInitials(user)}</div>
+        <span>{getDisplayName(user)}</span>
       </div>
     </aside>
   );

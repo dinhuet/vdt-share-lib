@@ -1,6 +1,17 @@
 import { ROUTES } from '../utils/constants';
 
-export default function Topbar({ activeRoute, onLogout }) {
+function getInitials(user) {
+  const displayName = user?.name || user?.username || 'Admin User';
+  return displayName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase();
+}
+
+export default function Topbar({ activeRoute, onLogout, user }) {
   const breadcrumbs = {
     [ROUTES.DASHBOARD]: 'Dashboard / Kibana',
     [ROUTES.CLIENTS]: 'Clients / Registry',
@@ -21,7 +32,7 @@ export default function Topbar({ activeRoute, onLogout }) {
         <span className="environment-pill">Environment: <strong>Production</strong></span>
         <button type="button" className="icon-button">♧</button>
         <button type="button" className="icon-button">⚙</button>
-        <button type="button" className="avatar-button" onClick={onLogout}>JD</button>
+        <button type="button" className="avatar-button" onClick={onLogout} title="Logout">{getInitials(user)}</button>
       </div>
     </header>
   );
