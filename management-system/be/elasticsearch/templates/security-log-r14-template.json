@@ -1,0 +1,43 @@
+{
+  "index_patterns": ["security-logs-r14-*"],
+  "template": {
+    "settings": { "index.lifecycle.name": "security-log-r14-policy" },
+    "mappings": {
+      "dynamic": true,
+      "properties": {
+        "timestamp": { "type": "date" },
+        "@timestamp": { "type": "date" },
+        "traceId": { "type": "keyword" },
+        "correlationId": { "type": "keyword" },
+        "endpointId": { "type": "keyword" },
+        "flowType": { "type": "keyword" },
+        "direction": { "type": "keyword" },
+        "protocol": { "type": "keyword" },
+        "method": { "type": "keyword" },
+        "status": { "type": "keyword" },
+        "resultCode": { "type": "keyword" },
+        "errorCode": { "type": "keyword" },
+        "clientId": { "type": "keyword" },
+        "topic": { "type": "keyword" },
+        "retentionBucket": { "type": "keyword" },
+        "failureAction": { "type": "keyword" },
+        "serviceName": { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
+        "endpointName": { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
+        "path": { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 512 } } },
+        "targetUrl": { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 1024 } } },
+        "denyReason": { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 512 } } },
+        "durationMs": { "type": "long" },
+        "latencyThresholdMs": { "type": "integer" },
+        "timeoutMs": { "type": "integer" },
+        "retryAttempt": { "type": "integer" },
+        "maxRetries": { "type": "integer" },
+        "retryDelayMs": { "type": "integer" },
+        "rateLimitCurrent": { "type": "long" },
+        "rateLimitMax": { "type": "integer" },
+        "rateLimitWindowSec": { "type": "integer" },
+        "retentionDays": { "type": "integer" },
+        "sourceIp": { "type": "ip", "ignore_malformed": true }
+      }
+    }
+  }
+}

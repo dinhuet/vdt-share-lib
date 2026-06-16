@@ -9,6 +9,7 @@ import org.springframework.kafka.listener.RecordInterceptor;
 import org.springframework.util.StringUtils;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 
 @Slf4j
 public class ExposedMqSecurityInterceptor implements RecordInterceptor<Object, Object> {
@@ -30,6 +31,7 @@ public class ExposedMqSecurityInterceptor implements RecordInterceptor<Object, O
     private final ClientAuthService clientAuthService;
     private final ClientPermissionChecker clientPermissionChecker;
     private final RateLimiter rateLimiter;
+    private final SecurityAuditLogger auditLogger;
 
     public ExposedMqSecurityInterceptor(
             EndpointRegistry endpointRegistry,
@@ -38,12 +40,24 @@ public class ExposedMqSecurityInterceptor implements RecordInterceptor<Object, O
             ClientAuthService clientAuthService,
             ClientPermissionChecker clientPermissionChecker,
             RateLimiter rateLimiter) {
+        this(endpointRegistry, settingsStore, accessPolicyEvaluator, clientAuthService, clientPermissionChecker, rateLimiter, null);
+    }
+
+    public ExposedMqSecurityInterceptor(
+            EndpointRegistry endpointRegistry,
+            SecuritySettingsStore settingsStore,
+            AccessPolicyEvaluator accessPolicyEvaluator,
+            ClientAuthService clientAuthService,
+            ClientPermissionChecker clientPermissionChecker,
+            RateLimiter rateLimiter,
+            SecurityAuditLogger auditLogger) {
         this.endpointRegistry = endpointRegistry;
         this.settingsStore = settingsStore;
         this.accessPolicyEvaluator = accessPolicyEvaluator;
         this.clientAuthService = clientAuthService;
         this.clientPermissionChecker = clientPermissionChecker;
         this.rateLimiter = rateLimiter;
+        this.auditLogger = auditLogger;
     }
 
     @Override
@@ -56,12 +70,17 @@ public class ExposedMqSecurityInterceptor implements RecordInterceptor<Object, O
             return record;
         }
 
+        var startedAt = System.currentTimeMillis();
+        ExposedApiRuntimeConfig auditConfig = null;
+        String clientId = null;
+        RateLimitResult rateLimitResult = null;
         try {
             var config = settingsStore.getExposedApi(endpoint.getEndpointId())
                     .orElseThrow(() -> nonRetryable(
                             FORBIDDEN,
                             "EXPOSED_API_CONFIG_MISSING",
                             "Exposed API runtime config was not found"));
+            auditConfig = config;
             validateConfig(config);
             validateRequestSize(config, record);
 
@@ -80,26 +99,34 @@ public class ExposedMqSecurityInterceptor implements RecordInterceptor<Object, O
                 var payloadBytes = extractPayloadBytes(record);
                 var client = clientAuthService.authenticate(headers, topic, payloadBytes);
                 clientPermissionChecker.checkPermission(client.getClientId(), config.getId());
-                checkRateLimit(config, "client", client.getClientId().toString());
+                clientId = client.getClientId().toString();
+                rateLimitResult = checkRateLimit(config, "client", clientId);
             } else {
                 var clientIdHeader = headers.get(RuntimeSecurityHeaders.CLIENT_ID);
-                checkRateLimit(
+                clientId = StringUtils.hasText(clientIdHeader) ? clientIdHeader.trim() : null;
+                rateLimitResult = checkRateLimit(
                         config,
                         StringUtils.hasText(clientIdHeader) ? "client" : ANONYMOUS,
                         StringUtils.hasText(clientIdHeader) ? clientIdHeader.trim() : UNKNOWN);
             }
 
-            timingContext.set(new SecurityTimingContext(System.currentTimeMillis(), config, endpoint, topic));
+            timingContext.set(new SecurityTimingContext(startedAt, config, endpoint, topic, clientId, rateLimitResult));
             return record;
         } catch (NonRetryableMqSecurityException | RetryableMqSecurityException e) {
+            audit(endpoint, auditConfig, topic, clientId, "DENIED", e.getErrorCode(), e.getErrorCode(), e.getMessage(),
+                    System.currentTimeMillis() - startedAt, rateLimitResult);
             timingContext.remove();
             throw e;
         } catch (RuntimeSecurityException e) {
+            audit(endpoint, auditConfig, topic, clientId, "DENIED", e.getErrorCode(), e.getErrorCode(), e.getMessage(),
+                    System.currentTimeMillis() - startedAt, rateLimitResult);
             timingContext.remove();
             throw nonRetryable(e.getStatusCode(), e.getErrorCode(), e.getMessage());
         } catch (RuntimeException e) {
             timingContext.remove();
             log.warn("MQ runtime security check failed for topic {}", topic, e);
+            audit(endpoint, auditConfig, topic, clientId, "FAILED", "RUNTIME_SECURITY_UNAVAILABLE", "RUNTIME_SECURITY_UNAVAILABLE",
+                    e.getMessage(), System.currentTimeMillis() - startedAt, rateLimitResult);
             throw nonRetryable(SERVICE_UNAVAILABLE, "RUNTIME_SECURITY_UNAVAILABLE", "Runtime security check failed");
         }
     }
@@ -117,6 +144,12 @@ public class ExposedMqSecurityInterceptor implements RecordInterceptor<Object, O
     public void failure(ConsumerRecord<Object, Object> record, Exception exception, Consumer<Object, Object> consumer) {
         try {
             log.debug("MQ security completed with listener failure for topic {}", record.topic(), exception);
+            var context = timingContext.get();
+            if (context != null) {
+                audit(context.endpoint(), context.config(), context.topic(), context.clientId(), "FAILED", "LISTENER_FAILED",
+                        exception == null ? null : exception.getClass().getSimpleName(), exception == null ? null : exception.getMessage(),
+                        System.currentTimeMillis() - context.startTimeMillis(), context.rateLimitResult());
+            }
         } finally {
             timingContext.remove();
         }
@@ -176,7 +209,7 @@ public class ExposedMqSecurityInterceptor implements RecordInterceptor<Object, O
         return null;
     }
 
-    private void checkRateLimit(ExposedApiRuntimeConfig config, String identityType, String identityValue) {
+    private RateLimitResult checkRateLimit(ExposedApiRuntimeConfig config, String identityType, String identityValue) {
         var result = rateLimiter.check(config, identityType, identityValue);
         if (!result.allowed()) {
             throw nonRetryable(
@@ -185,6 +218,7 @@ public class ExposedMqSecurityInterceptor implements RecordInterceptor<Object, O
                     "Rate limit exceeded: " + result.currentRequests() + "/" + result.maxRequests()
                             + " requests in " + result.windowSeconds() + " seconds");
         }
+        return result;
     }
 
     private void logTimingIfPresent() {
@@ -202,6 +236,51 @@ public class ExposedMqSecurityInterceptor implements RecordInterceptor<Object, O
             log.warn("MQ exposed API [{}] topic {} timed out: {}ms > {}ms",
                     context.endpoint().getName(), context.topic(), elapsed, config.getTimeoutMs());
         }
+        audit(context.endpoint(), config, context.topic(), context.clientId(), "SUCCESS", "SUCCESS", null, null,
+                elapsed, context.rateLimitResult());
+    }
+
+    private void audit(EndpointDefinition endpoint,
+                       ExposedApiRuntimeConfig config,
+                       String topic,
+                       String clientId,
+                       String status,
+                       String resultCode,
+                       String errorCode,
+                       String denyReason,
+                       long durationMs,
+                       RateLimitResult rateLimitResult) {
+        if (auditLogger == null) {
+            return;
+        }
+        try {
+            var retentionDays = config == null ? null : config.getLogRetentionDays();
+            auditLogger.log(SecurityLogEvent.builder()
+                    .timestamp(Instant.now())
+                    .serviceName(config == null ? null : config.getServiceName())
+                    .endpointId(endpoint.getEndpointId())
+                    .endpointName(config != null && StringUtils.hasText(config.getApiName()) ? config.getApiName() : endpoint.getName())
+                    .flowType("INBOUND_MQ")
+                    .direction("INBOUND")
+                    .protocol("MQ")
+                    .topic(topic)
+                    .clientId(clientId)
+                    .status(status)
+                    .resultCode(resultCode)
+                    .errorCode(errorCode)
+                    .denyReason(denyReason)
+                    .durationMs(durationMs)
+                    .latencyThresholdMs(config == null ? null : config.getLatencyThresholdMs())
+                    .timeoutMs(config == null ? null : config.getTimeoutMs())
+                    .rateLimitCurrent(rateLimitResult == null ? null : rateLimitResult.currentRequests())
+                    .rateLimitMax(rateLimitResult == null ? null : rateLimitResult.maxRequests())
+                    .rateLimitWindowSec(rateLimitResult == null ? null : Math.toIntExact(rateLimitResult.windowSeconds()))
+                    .retentionDays(SecurityLogRetentionBucketMapper.normalizedDays(retentionDays))
+                    .retentionBucket(SecurityLogRetentionBucketMapper.bucket(retentionDays))
+                    .build());
+        } catch (RuntimeException e) {
+            log.warn("security_audit_emit_failed flowType=INBOUND_MQ endpointId={}", endpoint.getEndpointId(), e);
+        }
     }
 
     private NonRetryableMqSecurityException nonRetryable(int statusCode, String errorCode, String message) {
@@ -212,6 +291,8 @@ public class ExposedMqSecurityInterceptor implements RecordInterceptor<Object, O
             long startTimeMillis,
             ExposedApiRuntimeConfig config,
             EndpointDefinition endpoint,
-            String topic) {
+            String topic,
+            String clientId,
+            RateLimitResult rateLimitResult) {
     }
 }

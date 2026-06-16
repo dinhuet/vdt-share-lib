@@ -38,6 +38,7 @@ class ExposedMqSecurityInterceptorTest {
     @Mock ClientAuthService clientAuthService;
     @Mock ClientPermissionChecker clientPermissionChecker;
     @Mock RateLimiter rateLimiter;
+    @Mock SecurityAuditLogger auditLogger;
 
     ExposedMqSecurityInterceptor interceptor;
     EndpointDefinition endpoint;
@@ -51,7 +52,8 @@ class ExposedMqSecurityInterceptorTest {
                 accessPolicyEvaluator,
                 clientAuthService,
                 clientPermissionChecker,
-                rateLimiter);
+                rateLimiter,
+                auditLogger);
         endpoint = EndpointDefinition.builder()
                 .endpointId(ENDPOINT_ID)
                 .type(EndpointType.EXPOSED)
@@ -138,6 +140,18 @@ class ExposedMqSecurityInterceptorTest {
     }
 
     @Test
+    void success_shouldAuditInboundMqSuccess() {
+        setupTrustedPass();
+        var record = record("payload");
+
+        interceptor.intercept(record, null);
+        interceptor.success(record, null);
+
+        verify(auditLogger).log(org.mockito.ArgumentMatchers.argThat(event ->
+                "INBOUND_MQ".equals(event.getFlowType()) && "SUCCESS".equals(event.getStatus()) && TOPIC.equals(event.getTopic())));
+    }
+
+    @Test
     void intercept_shouldWrapMissingAuthHeaderAsNonRetryable() {
         setupConfig();
         when(accessPolicyEvaluator.evaluate(any(), eq(""), any())).thenReturn(AccessPolicyDecision.REQUIRE_AUTH);
@@ -161,6 +175,8 @@ class ExposedMqSecurityInterceptorTest {
         assertThatThrownBy(() -> interceptor.intercept(record("payload"), null))
                 .isInstanceOf(NonRetryableMqSecurityException.class)
                 .hasMessageContaining("Rate limit exceeded");
+        verify(auditLogger).log(org.mockito.ArgumentMatchers.argThat(event ->
+                "INBOUND_MQ".equals(event.getFlowType()) && "RATE_LIMIT_EXCEEDED".equals(event.getErrorCode())));
     }
 
     @Test

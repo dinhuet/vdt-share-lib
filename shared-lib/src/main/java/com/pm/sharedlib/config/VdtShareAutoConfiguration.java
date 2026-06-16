@@ -18,6 +18,8 @@ import com.pm.sharedlib.runtime.MaxResponseSizeAdvice;
 import com.pm.sharedlib.runtime.MqSecurityErrorHandler;
 import com.pm.sharedlib.runtime.RateLimiter;
 import com.pm.sharedlib.runtime.SecurityAuthFilter;
+import com.pm.sharedlib.runtime.SecurityAuditLogPublisher;
+import com.pm.sharedlib.runtime.SecurityAuditLogger;
 import com.pm.sharedlib.runtime.SecuritySettingsStore;
 import com.pm.sharedlib.runtime.SigningSecretService;
 import com.pm.sharedlib.service.RegistrationService;
@@ -140,14 +142,34 @@ public class VdtShareAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public ClientCallRuntimeAspect clientCallRuntimeAspect(ClientApiRuntimePolicyService clientApiRuntimePolicyService) {
-        return new ClientCallRuntimeAspect(clientApiRuntimePolicyService);
+    public SecurityAuditLogPublisher securityAuditLogPublisher(
+            KafkaTemplate<String, String> kafkaTemplate,
+            ObjectMapper objectMapper,
+            VdtShareProperties properties) {
+        return new SecurityAuditLogPublisher(kafkaTemplate, objectMapper, properties);
     }
 
     @Bean
     @ConditionalOnMissingBean
-    public KafkaOutboundMetadataEnricher kafkaOutboundMetadataEnricher() {
-        return new KafkaOutboundMetadataEnricher();
+    public SecurityAuditLogger securityAuditLogger(
+            ObjectMapper objectMapper,
+            VdtShareProperties properties,
+            SecurityAuditLogPublisher publisher) {
+        return new SecurityAuditLogger(objectMapper, properties, publisher);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public ClientCallRuntimeAspect clientCallRuntimeAspect(
+            ClientApiRuntimePolicyService clientApiRuntimePolicyService,
+            SecurityAuditLogger securityAuditLogger) {
+        return new ClientCallRuntimeAspect(clientApiRuntimePolicyService, securityAuditLogger);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public KafkaOutboundMetadataEnricher kafkaOutboundMetadataEnricher(VdtShareProperties properties) {
+        return new KafkaOutboundMetadataEnricher(properties);
     }
 
     @Bean
@@ -159,14 +181,16 @@ public class VdtShareAutoConfiguration {
             AccessPolicyEvaluator accessPolicyEvaluator,
             ClientAuthService clientAuthService,
             ClientPermissionChecker clientPermissionChecker,
-            RateLimiter rateLimiter) {
+            RateLimiter rateLimiter,
+            SecurityAuditLogger securityAuditLogger) {
         return new ExposedMqSecurityInterceptor(
                 endpointRegistry,
                 securitySettingsStore,
                 accessPolicyEvaluator,
                 clientAuthService,
                 clientPermissionChecker,
-                rateLimiter);
+                rateLimiter,
+                securityAuditLogger);
     }
 
     @Bean
@@ -200,7 +224,8 @@ public class VdtShareAutoConfiguration {
             ClientPermissionChecker clientPermissionChecker,
             RateLimiter rateLimiter,
             VdtShareProperties properties,
-            ObjectMapper objectMapper) {
+            ObjectMapper objectMapper,
+            SecurityAuditLogger securityAuditLogger) {
         return new SecurityAuthFilter(
                 endpointRegistry,
                 securitySettingsStore,
@@ -209,7 +234,8 @@ public class VdtShareAutoConfiguration {
                 clientPermissionChecker,
                 rateLimiter,
                 properties,
-                objectMapper);
+                objectMapper,
+                securityAuditLogger);
     }
 
     @Bean

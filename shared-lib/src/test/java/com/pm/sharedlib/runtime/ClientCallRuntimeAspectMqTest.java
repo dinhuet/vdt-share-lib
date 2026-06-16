@@ -28,6 +28,7 @@ class ClientCallRuntimeAspectMqTest {
 
     @Mock ClientApiRuntimePolicyService policyService;
     @Mock ProceedingJoinPoint joinPoint;
+    @Mock SecurityAuditLogger auditLogger;
 
     List<Long> sleepCalls;
     ClientCallRuntimeAspect aspect;
@@ -37,7 +38,7 @@ class ClientCallRuntimeAspectMqTest {
     @BeforeEach
     void setUp() throws NoSuchMethodException {
         sleepCalls = new ArrayList<>();
-        aspect = new ClientCallRuntimeAspect(policyService, sleepCalls::add);
+        aspect = new ClientCallRuntimeAspect(policyService, auditLogger, sleepCalls::add);
         config = ClientApiRuntimeConfig.builder()
                 .id(UUID.randomUUID())
                 .endpointId(UUID.randomUUID())
@@ -65,6 +66,8 @@ class ClientCallRuntimeAspectMqTest {
 
         assertThat(result).isSameAs(future);
         verify(joinPoint).proceed();
+        verify(auditLogger).log(org.mockito.ArgumentMatchers.argThat(event ->
+                "OUTBOUND_MQ".equals(event.getFlowType()) && "SUCCESS".equals(event.getStatus())));
         assertThat(sleepCalls).isEmpty();
     }
 
@@ -81,6 +84,10 @@ class ClientCallRuntimeAspectMqTest {
 
         assertThat(result).isSameAs(success);
         verify(joinPoint, times(2)).proceed();
+        verify(auditLogger).log(org.mockito.ArgumentMatchers.argThat(event ->
+                "OUTBOUND_MQ".equals(event.getFlowType()) && "TIMEOUT".equals(event.getStatus())));
+        verify(auditLogger).log(org.mockito.ArgumentMatchers.argThat(event ->
+                "OUTBOUND_MQ".equals(event.getFlowType()) && "SUCCESS".equals(event.getStatus()) && event.getRetryAttempt() == 2));
         assertThat(sleepCalls).containsExactly(25L);
     }
 

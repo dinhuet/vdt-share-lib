@@ -1,7 +1,6 @@
 package com.pm.sharedlib.runtime;
 
 import com.pm.sharedlib.annotation.ClientCall;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.errors.SerializationException;
@@ -13,6 +12,7 @@ import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.ResourceAccessException;
 
 import java.net.SocketTimeoutException;
+import java.time.Instant;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -20,7 +20,6 @@ import java.util.concurrent.TimeoutException;
 
 @Aspect
 @Slf4j
-@RequiredArgsConstructor
 public class ClientCallRuntimeAspect {
 
     private static final String FAILURE_ACTION_COMPENSATE = "COMPENSATE";
@@ -29,9 +28,24 @@ public class ClientCallRuntimeAspect {
 
     private final ClientApiRuntimePolicyService policyService;
     private final Sleeper sleeper;
+    private final SecurityAuditLogger auditLogger;
 
     public ClientCallRuntimeAspect(ClientApiRuntimePolicyService policyService) {
-        this(policyService, Thread::sleep);
+        this(policyService, null, Thread::sleep);
+    }
+
+    public ClientCallRuntimeAspect(ClientApiRuntimePolicyService policyService, SecurityAuditLogger auditLogger) {
+        this(policyService, auditLogger, Thread::sleep);
+    }
+
+    public ClientCallRuntimeAspect(ClientApiRuntimePolicyService policyService, Sleeper sleeper) {
+        this(policyService, null, sleeper);
+    }
+
+    public ClientCallRuntimeAspect(ClientApiRuntimePolicyService policyService, SecurityAuditLogger auditLogger, Sleeper sleeper) {
+        this.policyService = policyService;
+        this.auditLogger = auditLogger;
+        this.sleeper = sleeper;
     }
 
     @Around("@annotation(clientCall)")
@@ -51,16 +65,24 @@ public class ClientCallRuntimeAspect {
             try {
                 var result = joinPoint.proceed();
                 logDuration(config, clientCall, attempt, startedAt, true, null);
+                auditHttp(config, clientCall, "SUCCESS", "SUCCESS", null, null, attempt, maxRetries, retryDelayMs, startedAt);
                 return result;
             } catch (Throwable failure) {
                 lastFailure = failure;
                 var retryable = isRetryable(failure);
                 logDuration(config, clientCall, attempt, startedAt, false, failure);
                 if (!retryable || attempt >= maxAttempts) {
+                    auditHttp(config, clientCall, "FAILED", isTimeout(failure) ? "TIMEOUT_EXCEEDED" : "RETRY_EXHAUSTED",
+                            isTimeout(failure) ? "TIMEOUT_EXCEEDED" : failure.getClass().getSimpleName(), failure.getMessage(),
+                            attempt, maxRetries, retryDelayMs, startedAt);
                     log.warn("outbound_client_call_retry_exhausted method={} destinationUrl={} attempts={} retryable={} error={}",
                             clientCall.method(), clientCall.destinationUrl(), attempt, retryable, failure.toString());
                     throw handleFinalFailure(config, failure);
                 }
+                auditHttp(config, clientCall, isTimeout(failure) ? "TIMEOUT" : "RETRY",
+                        isTimeout(failure) ? "TIMEOUT_EXCEEDED" : "RETRY_SCHEDULED",
+                        isTimeout(failure) ? "TIMEOUT_EXCEEDED" : failure.getClass().getSimpleName(), failure.getMessage(),
+                        attempt, maxRetries, retryDelayMs, startedAt);
                 log.warn("outbound_client_call_retry method={} destinationUrl={} attempt={} maxAttempts={} delayMs={} error={}",
                         clientCall.method(), clientCall.destinationUrl(), attempt, maxAttempts, retryDelayMs, failure.toString());
                 try {
@@ -92,18 +114,26 @@ public class ClientCallRuntimeAspect {
                 var result = joinPoint.proceed();
                 waitPublishAckIfRequired(result, config.getTimeoutMs());
                 logMqDuration(config, clientCall, attempt, startedAt, true, null, false);
+                auditMq(config, clientCall, "SUCCESS", "SUCCESS", null, null, attempt, maxRetries, retryDelayMs, startedAt);
                 return result;
             } catch (Throwable failure) {
                 lastFailure = unwrapExecutionFailure(failure);
                 var retryable = isMqRetryable(lastFailure);
                 logMqDuration(config, clientCall, attempt, startedAt, false, lastFailure, false);
+                var outboundError = classifyMqOutboundError(lastFailure);
                 if (!retryable || attempt >= maxAttempts) {
+                    auditMq(config, clientCall, isTimeout(lastFailure) ? "TIMEOUT" : "FAILED",
+                            outboundError.name(), outboundError.name(), lastFailure.getMessage(),
+                            attempt, maxRetries, retryDelayMs, startedAt);
                     log.warn("outbound_client_mq_retry_exhausted topic={} attempts={} retryable={} errorCode={} error={}",
-                            clientCall.topic(), attempt, retryable, classifyMqOutboundError(lastFailure), lastFailure.toString());
-                    throw handleFinalFailure(config, classifyMqOutboundError(lastFailure), lastFailure);
+                            clientCall.topic(), attempt, retryable, outboundError, lastFailure.toString());
+                    throw handleFinalFailure(config, outboundError, lastFailure);
                 }
+                auditMq(config, clientCall, isTimeout(lastFailure) ? "TIMEOUT" : "RETRY",
+                        isTimeout(lastFailure) ? "TIMEOUT_EXCEEDED" : "RETRY_SCHEDULED", outboundError.name(), lastFailure.getMessage(),
+                        attempt, maxRetries, retryDelayMs, startedAt);
                 log.warn("outbound_client_mq_retry topic={} attempt={} maxAttempts={} delayMs={} errorCode={} error={}",
-                        clientCall.topic(), attempt, maxAttempts, retryDelayMs, classifyMqOutboundError(lastFailure), lastFailure.toString());
+                        clientCall.topic(), attempt, maxAttempts, retryDelayMs, outboundError, lastFailure.toString());
                 try {
                     sleep(retryDelayMs);
                 } catch (InterruptedException interrupted) {
@@ -204,6 +234,72 @@ public class ClientCallRuntimeAspect {
         if (latencyThresholdMs != null && latencyThresholdMs >= 0 && durationMs > latencyThresholdMs) {
             log.warn("outbound_client_call_latency_exceeded method={} destinationUrl={} attempt={} durationMs={} thresholdMs={}",
                     clientCall.method(), clientCall.destinationUrl(), attempt, durationMs, latencyThresholdMs);
+        }
+    }
+
+    private void auditHttp(ClientApiRuntimeConfig config, ClientCall clientCall, String status, String resultCode,
+                           String errorCode, String denyReason, int attempt, int maxRetries, int retryDelayMs, long startedAt) {
+        audit(SecurityLogEvent.builder()
+                .timestamp(Instant.now())
+                .serviceName(config.getServiceName())
+                .endpointId(config.getEndpointId())
+                .endpointName(config.getApiName())
+                .flowType("OUTBOUND_HTTP")
+                .direction("OUTBOUND")
+                .protocol("HTTP")
+                .method(clientCall.method())
+                .targetUrl(clientCall.destinationUrl())
+                .status(status)
+                .resultCode(resultCode)
+                .errorCode(errorCode)
+                .denyReason(denyReason)
+                .durationMs((System.nanoTime() - startedAt) / 1_000_000)
+                .latencyThresholdMs(config.getLatencyThresholdMs())
+                .timeoutMs(config.getTimeoutMs())
+                .retryAttempt(attempt)
+                .maxRetries(maxRetries)
+                .retryDelayMs(retryDelayMs)
+                .failureAction(config.getFailureAction())
+                .retentionDays(SecurityLogRetentionBucketMapper.normalizedDays(config.getLogRetentionDays()))
+                .retentionBucket(SecurityLogRetentionBucketMapper.bucket(config.getLogRetentionDays()))
+                .build());
+    }
+
+    private void auditMq(ClientApiRuntimeConfig config, ClientCall clientCall, String status, String resultCode,
+                         String errorCode, String denyReason, int attempt, int maxRetries, int retryDelayMs, long startedAt) {
+        audit(SecurityLogEvent.builder()
+                .timestamp(Instant.now())
+                .serviceName(config.getServiceName())
+                .endpointId(config.getEndpointId())
+                .endpointName(config.getApiName())
+                .flowType("OUTBOUND_MQ")
+                .direction("OUTBOUND")
+                .protocol("MQ")
+                .topic(clientCall.topic())
+                .status(status)
+                .resultCode(resultCode)
+                .errorCode(errorCode)
+                .denyReason(denyReason)
+                .durationMs((System.nanoTime() - startedAt) / 1_000_000)
+                .latencyThresholdMs(config.getLatencyThresholdMs())
+                .timeoutMs(config.getTimeoutMs())
+                .retryAttempt(attempt)
+                .maxRetries(maxRetries)
+                .retryDelayMs(retryDelayMs)
+                .failureAction(config.getFailureAction())
+                .retentionDays(SecurityLogRetentionBucketMapper.normalizedDays(config.getLogRetentionDays()))
+                .retentionBucket(SecurityLogRetentionBucketMapper.bucket(config.getLogRetentionDays()))
+                .build());
+    }
+
+    private void audit(SecurityLogEvent event) {
+        if (auditLogger == null) {
+            return;
+        }
+        try {
+            auditLogger.log(event);
+        } catch (RuntimeException e) {
+            log.warn("security_audit_emit_failed flowType={} endpointId={}", event.getFlowType(), event.getEndpointId(), e);
         }
     }
 

@@ -27,6 +27,7 @@ class ClientCallRuntimeAspectTest {
 
     @Mock ClientApiRuntimePolicyService policyService;
     @Mock ProceedingJoinPoint joinPoint;
+    @Mock SecurityAuditLogger auditLogger;
 
     List<Long> sleepCalls;
     ClientCallRuntimeAspect aspect;
@@ -36,7 +37,7 @@ class ClientCallRuntimeAspectTest {
     @BeforeEach
     void setUp() throws NoSuchMethodException {
         sleepCalls = new ArrayList<>();
-        aspect = new ClientCallRuntimeAspect(policyService, sleepCalls::add);
+        aspect = new ClientCallRuntimeAspect(policyService, auditLogger, sleepCalls::add);
         config = ClientApiRuntimeConfig.builder()
                 .id(UUID.randomUUID())
                 .endpointId(UUID.randomUUID())
@@ -62,6 +63,8 @@ class ClientCallRuntimeAspectTest {
 
         assertThat(result).isEqualTo("ok");
         verify(joinPoint).proceed();
+        verify(auditLogger).log(org.mockito.ArgumentMatchers.argThat(event ->
+                "OUTBOUND_HTTP".equals(event.getFlowType()) && "SUCCESS".equals(event.getStatus())));
         assertThat(sleepCalls).isEmpty();
     }
 
@@ -78,6 +81,10 @@ class ClientCallRuntimeAspectTest {
 
         assertThat(result).isEqualTo("ok");
         verify(joinPoint, times(3)).proceed();
+        verify(auditLogger, times(2)).log(org.mockito.ArgumentMatchers.argThat(event ->
+                "OUTBOUND_HTTP".equals(event.getFlowType()) && "RETRY".equals(event.getStatus())));
+        verify(auditLogger).log(org.mockito.ArgumentMatchers.argThat(event ->
+                "OUTBOUND_HTTP".equals(event.getFlowType()) && "SUCCESS".equals(event.getStatus()) && event.getRetryAttempt() == 3));
         assertThat(sleepCalls).containsExactly(25L, 25L);
     }
 
@@ -130,7 +137,7 @@ class ClientCallRuntimeAspectTest {
     void aroundClientCall_shouldRestoreInterruptFlagWhenRetrySleepIsInterrupted() throws Throwable {
         config.setMaxRetries(1);
         config.setRetryDelayMs(10);
-        aspect = new ClientCallRuntimeAspect(policyService, millis -> {
+        aspect = new ClientCallRuntimeAspect(policyService, auditLogger, millis -> {
             throw new InterruptedException("stop");
         });
         var failure = new RuntimeException("network");
