@@ -1,10 +1,27 @@
 export const ROUTES = {
+  DASHBOARD: 'dashboard',
   CLIENTS: 'clients',
   SHARED_APIS: 'sharedApis',
   CLIENT_APIS: 'clientApis',
   DEFAULT_CONFIGS: 'defaultConfigs',
   ACCESS_POLICIES: 'accessPolicies',
 };
+
+export const ROUTE_PATHS = {
+  [ROUTES.DASHBOARD]: '/dashboard',
+  [ROUTES.CLIENTS]: '/clients',
+  [ROUTES.SHARED_APIS]: '/shared-apis',
+  [ROUTES.CLIENT_APIS]: '/client-apis',
+  [ROUTES.DEFAULT_CONFIGS]: '/default-configs',
+  [ROUTES.ACCESS_POLICIES]: '/access-policies',
+};
+
+export function getRouteFromPath(pathname) {
+  const normalizedPath = pathname === '/' ? ROUTE_PATHS[ROUTES.SHARED_APIS] : pathname;
+  const matchedEntry = Object.entries(ROUTE_PATHS).find(([, path]) => path === normalizedPath);
+
+  return matchedEntry?.[0] || ROUTES.SHARED_APIS;
+}
 
 export const CLIENT_STATUSES = ['ACTIVE', 'INACTIVE', 'REVOKED'];
 

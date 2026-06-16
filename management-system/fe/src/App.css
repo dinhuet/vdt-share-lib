@@ -120,6 +120,10 @@ input:focus, select:focus, textarea:focus { border-color: var(--primary); box-sh
 .empty-state { text-align: center; padding: 32px; color: var(--muted); }
 .empty-state strong { display: block; color: var(--text); margin-bottom: 6px; }
 
+.dashboard-page { max-width: 1600px; }
+.dashboard-frame-card { background: var(--panel); border: 1px solid var(--border); border-radius: 18px; overflow: hidden; min-height: calc(100vh - 178px); box-shadow: 0 14px 36px rgba(32, 22, 70, 0.06); }
+.dashboard-frame-card iframe { display: block; width: 100%; min-height: calc(100vh - 178px); border: 0; background: white; }
+
 .modal-backdrop { position: fixed; inset: 0; background: rgba(20, 14, 42, 0.44); display: grid; place-items: center; padding: 24px; z-index: 20; }
 .modal { width: min(940px, 100%); max-height: min(860px, 92vh); overflow: auto; background: white; border-radius: 18px; border: 1px solid var(--border); box-shadow: 0 24px 80px rgba(20, 14, 42, 0.24); }
 .modal-header, .modal-footer { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; padding: 20px 24px; border-bottom: 1px solid var(--border); }

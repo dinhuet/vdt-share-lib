@@ -1,3 +1,4 @@
+import DashboardPage from '../features/dashboard/DashboardPage';
 import DefaultConfigsPage from '../features/defaultConfigs/DefaultConfigsPage';
 import AccessPoliciesPage from '../features/accessPolicies/AccessPoliciesPage';
 import ClientApisPage from '../features/clientApis/ClientApisPage';
@@ -6,6 +7,10 @@ import ExposedApisPage from '../features/exposedApis/ExposedApisPage';
 import { ROUTES } from '../utils/constants';
 
 export default function AppRoutes({ activeRoute }) {
+  if (activeRoute === ROUTES.DASHBOARD) {
+    return <DashboardPage />;
+  }
+
   if (activeRoute === ROUTES.CLIENTS) {
     return <ClientsPage />;
   }

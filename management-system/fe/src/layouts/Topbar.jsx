@@ -1,9 +1,15 @@
 import { ROUTES } from '../utils/constants';
 
 export default function Topbar({ activeRoute, onLogout }) {
-  const breadcrumb = activeRoute === ROUTES.DEFAULT_CONFIGS
-    ? 'Settings / Default Configs'
-    : 'Shared APIs / Exposed APIs';
+  const breadcrumbs = {
+    [ROUTES.DASHBOARD]: 'Dashboard / Kibana',
+    [ROUTES.CLIENTS]: 'Clients / Registry',
+    [ROUTES.SHARED_APIS]: 'Shared APIs / Exposed APIs',
+    [ROUTES.CLIENT_APIS]: 'Client APIs / Outbound APIs',
+    [ROUTES.DEFAULT_CONFIGS]: 'Settings / Default Configs',
+    [ROUTES.ACCESS_POLICIES]: 'Security / Policies',
+  };
+  const breadcrumb = breadcrumbs[activeRoute] || breadcrumbs[ROUTES.SHARED_APIS];
 
   return (
     <header className="topbar">
