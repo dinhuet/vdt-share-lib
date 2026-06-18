@@ -22,6 +22,12 @@ export default function ExposedApisPage() {
   const counts = useMemo(() => ({
     active: apis.filter((api) => api.syncStatus === 'ACTIVE').length,
     stale: apis.filter((api) => api.syncStatus === 'STALE').length,
+    enabled: apis.filter((api) => api.enabled).length,
+    defaultConfig: apis.filter((api) => api.useDefaultConfig).length,
+    lowLatency: apis.filter((api) => {
+      const latencyThreshold = Number(api.latencyThresholdMs);
+      return api.enabled && api.syncStatus === 'ACTIVE' && api.latencyThresholdMs != null && Number.isFinite(latencyThreshold) && latencyThreshold <= 100;
+    }).length,
   }), [apis]);
 
   useEffect(() => {
@@ -120,9 +126,9 @@ export default function ExposedApisPage() {
       <ExposedApisTable apis={displayedApis} busyId={busyId} onToggleEnabled={handleToggleEnabled} onConfigure={setSelectedApi} onResetDefault={handleResetDefault} onDelete={handleDelete} />
       <div className="table-footer"><span>Showing {displayedApis.length} of {apis.length} APIs</span><div><Button variant="ghost" disabled>Previous</Button><Button variant="ghost">Next</Button></div></div>
       <div className="insight-grid">
-        <StatCard icon="✣" label="Drift Detected" value="12 APIs" tone="purple" meta="registered definitions may need sync" />
-        <StatCard icon="▣" label="Global Policy Sync" value="Active" tone="blue" meta="JWT validation policy applied" />
-        <StatCard icon="⌁" label="New Library Version" value="Available" tone="neutral" meta="Shared-lib update ready" />
+        <StatCard icon="✓" label="Enabled APIs" value={`${counts.enabled} APIs`} tone="green" meta="available for shared API consumers" />
+        <StatCard icon="☷" label="Default Config APIs" value={`${counts.defaultConfig} APIs`} tone="purple" meta="using the global default configuration" />
+        <StatCard icon="⌁" label="Low Latency Target" value={`${counts.lowLatency} APIs`} tone="blue" meta="active enabled APIs at or below 100ms" />
       </div>
       {selectedApi ? <ExposedApiConfigModal api={selectedApi} saving={busyId === selectedApi.id} onClose={() => setSelectedApi(null)} onSave={handleSaveLimits} onResetDefault={handleResetDefault} /> : null}
     </div>

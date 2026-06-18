@@ -185,7 +185,6 @@ export default function AccessPoliciesPage() {
       <div className="insight-grid">
         <StatCard icon="✓" label="Whitelist Rules" value={`${splitPolicies.white.length} rules`} tone="green" meta="visible allow-list for selected API" />
         <StatCard icon="!" label="Blacklist Rules" value={`${splitPolicies.black.length} rules`} tone="danger" meta="deny-list takes priority in runtime" />
-        <StatCard icon="◌" label="Match Types" value="Client/IP/CIDR" tone="blue" meta="policy shape is ready for gateway enforcement" />
       </div>
       {createModalType ? <PolicyRuleModal type={createModalType} clients={clients} saving={busyId === createModalType} onClose={() => setCreateModalType('')} onCreate={handleCreate} /> : null}
     </div>
