@@ -32,8 +32,7 @@ public class EndpointRegistry {
             return;
         }
 
-        var previousManifest = manifestStore.read().orElse(null);
-        var resolver = new EndpointIdResolver(previousManifest);
+        var resolver = new EndpointIdResolver(serviceName);
         var scanned = scanner.scan();
 
         var resolvedExposedApis = resolveEndpointIds(scanned.exposedApis(), resolver);

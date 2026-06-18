@@ -2,13 +2,17 @@ package com.pm.sharedlib.endpoint;
 
 import org.junit.jupiter.api.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentCaptor.forClass;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class EndpointRegistryTest {
@@ -70,6 +74,30 @@ class EndpointRegistryTest {
                 .hasMessageContaining("Duplicate exposed MQ topic: orders.created");
     }
 
+    @Test
+    void initialize_shouldAssignDeterministicEndpointIdFromServiceNameAndEndpointKey() {
+        var scanner = mock(EndpointScanner.class);
+        var manifestStore = mock(EndpointManifestStore.class);
+        var endpoint = EndpointDefinition.builder()
+                .type(EndpointType.EXPOSED)
+                .protocol("HTTP")
+                .name("create-order")
+                .method("POST")
+                .path("/api/orders")
+                .build();
+        when(scanner.scan()).thenReturn(new EndpointScanner.ScannedEndpoints(List.of(endpoint), List.of()));
+        var registry = new EndpointRegistry(scanner, manifestStore);
+
+        registry.initialize("order-service");
+
+        var manifestCaptor = forClass(EndpointManifest.class);
+        verify(manifestStore).write(manifestCaptor.capture());
+        var registeredEndpoint = manifestCaptor.getValue().getExposedApis().get(0);
+        var endpointKey = "EXPOSED:HTTP:POST:/api/orders";
+        assertThat(registeredEndpoint.getEndpointKey()).isEqualTo(endpointKey);
+        assertThat(registeredEndpoint.getEndpointId()).isEqualTo(deterministicId("order-service", endpointKey));
+    }
+
     private EndpointRegistry initializedRegistry(List<EndpointDefinition> exposedApis) {
         return initializedRegistry(exposedApis, List.of());
     }
@@ -93,5 +121,9 @@ class EndpointRegistryTest {
                 .handlerClass(handlerClass)
                 .handlerMethod(handlerMethod)
                 .build();
+    }
+
+    private UUID deterministicId(String serviceName, String endpointKey) {
+        return UUID.nameUUIDFromBytes((serviceName + ":" + endpointKey).getBytes(StandardCharsets.UTF_8));
     }
 }
