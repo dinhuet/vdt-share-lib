@@ -8,9 +8,9 @@ import com.pm.be.enums.SyncStatus;
 import com.pm.be.repository.ClientApiRepository;
 import com.pm.be.repository.ExposedApiRepository;
 import com.pm.be.repository.MicroServiceRepository;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -19,7 +19,6 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
 @Slf4j
 public class SyncRegistrationService {
 
@@ -38,42 +37,29 @@ public class SyncRegistrationService {
             throw new IllegalArgumentException("serviceName must not be blank");
         }
 
-        var service = microServiceRepo.findByName(serviceName)
-                .orElseGet(() -> {
-                    var svc = new MicroServiceEntity();
-                    svc.setName(serviceName);
-                    svc.setCreatedAt(LocalDateTime.now());
-                    return svc;
-                });
-
-        service.setName(serviceName);
-        service.setServiceUrl(serviceUrl);
-        service.setStatus("ACTIVE");
-        service.setUpdatedAt(LocalDateTime.now());
-        var savedService = microServiceRepo.save(service);
+        var savedService = upsertMicroService(serviceName, serviceUrl);
         log.info("Upserted micro_service: {} (id={})", savedService.getName(), savedService.getId());
 
         var now = LocalDateTime.now();
         var existingApis = exposedApiRepo.findByMicroServiceId(savedService.getId());
         for (var existingApi : existingApis) {
-            existingApi.setSyncStatus(SyncStatus.STALE);
-            existingApi.setUpdatedAt(now);
+                existingApi.setSyncStatus(SyncStatus.STALE);
+                existingApi.setUpdatedAt(now);
         }
-        exposedApiRepo.saveAll(existingApis);
+        exposedApiRepo.saveAllAndFlush(existingApis);
         exposedApiRedisSyncService.syncAll(existingApis);
 
         var existingClientApis = clientApiRepo.findByMicroServiceId(savedService.getId());
         for (var existingClientApi : existingClientApis) {
-            existingClientApi.setSyncStatus(SyncStatus.STALE);
-            existingClientApi.setUpdatedAt(now);
+                existingClientApi.setSyncStatus(SyncStatus.STALE);
+                existingClientApi.setUpdatedAt(now);
         }
-        clientApiRepo.saveAll(existingClientApis);
+        clientApiRepo.saveAllAndFlush(existingClientApis);
         clientApiRedisSyncService.syncAll(existingClientApis);
 
         if (exposedApis != null) {
             for (var api : exposedApis) {
-                var existingEntity = exposedApiRepo.findByMicroServiceIdAndEndpointId(savedService.getId(), api.endpointId())
-                        .or(() -> exposedApiRepo.findByMicroServiceIdAndName(savedService.getId(), api.name()));
+                var existingEntity = exposedApiRepo.findByMicroServiceIdAndEndpointId(savedService.getId(), api.endpointId());
                 var entity = existingEntity
                         .orElseGet(() -> {
                             var e = new ExposedApiEntity();
@@ -84,17 +70,8 @@ public class SyncRegistrationService {
                             e.setCreatedAt(now);
                             return e;
                         });
-                entity.setEndpointId(api.endpointId());
-                entity.setEndpointKey(api.endpointKey());
-                entity.setName(api.name());
-                entity.setPath(api.path());
-                entity.setTopic(api.topic());
-                entity.setMethod(api.method());
-                entity.setProtocol(api.protocol());
-                entity.setSyncStatus(SyncStatus.ACTIVE);
-                entity.setLastSyncedAt(now);
-                entity.setUpdatedAt(now);
-                var savedApi = exposedApiRepo.save(entity);
+                applyExposedApi(entity, api, now);
+                var savedApi = saveExposedApi(entity, savedService.getId(), api, now);
                 exposedApiRedisSyncService.syncApi(savedApi);
                 log.info("Upserted exposed_api: {}", api.name());
             }
@@ -102,8 +79,7 @@ public class SyncRegistrationService {
 
         if (clientApis != null) {
             for (var api : clientApis) {
-                var existingEntity = clientApiRepo.findByMicroServiceIdAndEndpointId(savedService.getId(), api.endpointId())
-                        .or(() -> clientApiRepo.findByMicroServiceIdAndName(savedService.getId(), api.name()));
+                var existingEntity = clientApiRepo.findByMicroServiceIdAndEndpointId(savedService.getId(), api.endpointId());
                 var entity = existingEntity
                         .orElseGet(() -> {
                             var e = new ClientApiEntity();
@@ -114,21 +90,88 @@ public class SyncRegistrationService {
                             e.setCreatedAt(now);
                             return e;
                         });
-                entity.setEndpointId(api.endpointId());
-                entity.setEndpointKey(api.endpointKey());
-                entity.setName(api.name());
-                entity.setDestinationUrl(api.destinationUrl());
-                entity.setTopic(api.topic());
-                entity.setMethod(api.method());
-                entity.setProtocol(api.protocol());
-                entity.setSyncStatus(SyncStatus.ACTIVE);
-                entity.setLastSyncedAt(now);
-                entity.setUpdatedAt(now);
-                var savedClientApi = clientApiRepo.save(entity);
+                applyClientApi(entity, api, now);
+                var savedClientApi = saveClientApi(entity, savedService.getId(), api, now);
                 clientApiRedisSyncService.syncApi(savedClientApi);
                 log.info("Upserted client_api: {}", api.name());
             }
         }
+    }
+
+    private MicroServiceEntity upsertMicroService(String serviceName, String serviceUrl) {
+        var now = LocalDateTime.now();
+        var service = microServiceRepo.findByName(serviceName)
+                .orElseGet(() -> {
+                    var svc = new MicroServiceEntity();
+                    svc.setName(serviceName);
+                    svc.setCreatedAt(now);
+                    return svc;
+                });
+        applyMicroService(service, serviceName, serviceUrl, now);
+
+        try {
+            return microServiceRepo.saveAndFlush(service);
+        } catch (DataIntegrityViolationException e) {
+            var existing = microServiceRepo.findByName(serviceName)
+                    .orElseThrow(() -> e);
+            applyMicroService(existing, serviceName, serviceUrl, now);
+            return microServiceRepo.saveAndFlush(existing);
+        }
+    }
+
+    private void applyMicroService(MicroServiceEntity service, String serviceName, String serviceUrl, LocalDateTime now) {
+        service.setName(serviceName);
+        service.setServiceUrl(serviceUrl);
+        service.setStatus("ACTIVE");
+        service.setUpdatedAt(now);
+    }
+
+    private ExposedApiEntity saveExposedApi(ExposedApiEntity entity, UUID microServiceId, ExposedApiInfo api, LocalDateTime now) {
+        try {
+            return exposedApiRepo.saveAndFlush(entity);
+        } catch (DataIntegrityViolationException e) {
+            var existing = exposedApiRepo.findByMicroServiceIdAndEndpointId(microServiceId, api.endpointId())
+                    .orElseThrow(() -> e);
+            applyExposedApi(existing, api, now);
+            return exposedApiRepo.saveAndFlush(existing);
+        }
+    }
+
+    private ClientApiEntity saveClientApi(ClientApiEntity entity, UUID microServiceId, ClientApiInfo api, LocalDateTime now) {
+        try {
+            return clientApiRepo.saveAndFlush(entity);
+        } catch (DataIntegrityViolationException e) {
+            var existing = clientApiRepo.findByMicroServiceIdAndEndpointId(microServiceId, api.endpointId())
+                    .orElseThrow(() -> e);
+            applyClientApi(existing, api, now);
+            return clientApiRepo.saveAndFlush(existing);
+        }
+    }
+
+    private void applyExposedApi(ExposedApiEntity entity, ExposedApiInfo api, LocalDateTime now) {
+        entity.setEndpointId(api.endpointId());
+        entity.setEndpointKey(api.endpointKey());
+        entity.setName(api.name());
+        entity.setPath(api.path());
+        entity.setTopic(api.topic());
+        entity.setMethod(api.method());
+        entity.setProtocol(api.protocol());
+        entity.setSyncStatus(SyncStatus.ACTIVE);
+        entity.setLastSyncedAt(now);
+        entity.setUpdatedAt(now);
+    }
+
+    private void applyClientApi(ClientApiEntity entity, ClientApiInfo api, LocalDateTime now) {
+        entity.setEndpointId(api.endpointId());
+        entity.setEndpointKey(api.endpointKey());
+        entity.setName(api.name());
+        entity.setDestinationUrl(api.destinationUrl());
+        entity.setTopic(api.topic());
+        entity.setMethod(api.method());
+        entity.setProtocol(api.protocol());
+        entity.setSyncStatus(SyncStatus.ACTIVE);
+        entity.setLastSyncedAt(now);
+        entity.setUpdatedAt(now);
     }
 
     public record ExposedApiInfo(UUID endpointId, String endpointKey, String name, String path, String topic, String method, String protocol) {}

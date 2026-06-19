@@ -4,7 +4,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.server.PathContainer;
 import org.springframework.web.util.pattern.PathPatternParser;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -16,15 +15,13 @@ import java.util.UUID;
 public class EndpointRegistry {
 
     private final EndpointScanner scanner;
-    private final EndpointManifestStore manifestStore;
     private final PathPatternParser pathPatternParser = new PathPatternParser();
     private final List<EndpointDefinition> exposedApis = new ArrayList<>();
     private final List<EndpointDefinition> clientApis = new ArrayList<>();
     private boolean initialized;
 
-    public EndpointRegistry(EndpointScanner scanner, EndpointManifestStore manifestStore) {
+    public EndpointRegistry(EndpointScanner scanner) {
         this.scanner = scanner;
-        this.manifestStore = manifestStore;
     }
 
     public synchronized void initialize(String serviceName) {
@@ -43,14 +40,6 @@ public class EndpointRegistry {
         exposedApis.addAll(resolvedExposedApis);
         clientApis.clear();
         clientApis.addAll(resolvedClientApis);
-
-        manifestStore.write(EndpointManifest.builder()
-                .version(1)
-                .serviceName(serviceName)
-                .generatedAt(LocalDateTime.now().toString())
-                .exposedApis(resolvedExposedApis)
-                .clientApis(resolvedClientApis)
-                .build());
 
         initialized = true;
         log.info("Initialized endpoint registry: exposedApis={}, clientApis={}", exposedApis.size(), clientApis.size());

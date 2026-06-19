@@ -2,7 +2,6 @@ package com.pm.sharedlib.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.pm.sharedlib.endpoint.EndpointManifestStore;
 import com.pm.sharedlib.endpoint.EndpointRegistry;
 import com.pm.sharedlib.endpoint.EndpointScanner;
 import com.pm.sharedlib.kafka.RegistrationEventProducer;
@@ -36,8 +35,6 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.listener.CommonErrorHandler;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
-import java.nio.file.Path;
-
 @AutoConfiguration
 @ConditionalOnProperty(prefix = "vdt.share", name = "enabled", havingValue = "true")
 @EnableConfigurationProperties(VdtShareProperties.class)
@@ -58,16 +55,6 @@ public class VdtShareAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public EndpointManifestStore endpointManifestStore(
-            ObjectMapper objectMapper,
-            VdtShareProperties properties,
-            Environment environment) {
-        var path = environment.resolvePlaceholders(properties.getEndpointManifestPath());
-        return new EndpointManifestStore(objectMapper, Path.of(path));
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
     public EndpointScanner endpointScanner(
             ListableBeanFactory beanFactory,
             ObjectProvider<RequestMappingHandlerMapping> requestMappingHandlerMapping) {
@@ -76,10 +63,8 @@ public class VdtShareAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public EndpointRegistry endpointRegistry(
-            EndpointScanner endpointScanner,
-            EndpointManifestStore endpointManifestStore) {
-        return new EndpointRegistry(endpointScanner, endpointManifestStore);
+    public EndpointRegistry endpointRegistry(EndpointScanner endpointScanner) {
+        return new EndpointRegistry(endpointScanner);
     }
 
     @Bean

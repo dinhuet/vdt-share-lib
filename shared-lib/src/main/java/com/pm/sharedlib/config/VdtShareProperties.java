@@ -9,7 +9,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "vdt.share")
 public class VdtShareProperties {
     boolean enabled = true;
-    String endpointManifestPath = "./.vdt-share/${spring.application.name}/endpoints.json";
     Runtime runtime = new Runtime();
     Audit audit = new Audit();
 
