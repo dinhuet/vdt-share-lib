@@ -1,0 +1,40 @@
+package com.pm.be.dto.response.clientapi;
+
+import com.pm.be.enums.SyncStatus;
+import lombok.*;
+import lombok.experimental.FieldDefaults;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class ClientApiResponse {
+    UUID id;
+    UUID microServiceId;
+    String microServiceName;
+    UUID endpointId;
+    String endpointKey;
+    UUID clientId;
+    String name;
+    String destinationUrl;
+    String topic;
+    String method;
+    String protocol;
+    Integer latencyThresholdMs;
+    Integer timeoutMs;
+    Integer maxRetries;
+    Integer retryDelayMs;
+    String failureAction;
+    Integer logRetentionDays;
+    Boolean useDefaultConfig;
+    UUID notificationRuleId;
+    Boolean enabled;
+    SyncStatus syncStatus;
+    LocalDateTime lastSyncedAt;
+    LocalDateTime createdAt;
+    LocalDateTime updatedAt;
+}

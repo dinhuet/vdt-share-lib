@@ -1,10 +1,10 @@
 package com.pm.be.config;
 
-import com.pm.be.entity.AnomalyBaselineRuleConfigEntity;
-import com.pm.be.entity.AnomalyRuleEntity;
-import com.pm.be.entity.AnomalyStaticRuleConfigEntity;
+import com.pm.be.entity.anomaly.AnomalyBaselineRuleConfigEntity;
+import com.pm.be.entity.anomaly.AnomalyRuleEntity;
+import com.pm.be.entity.anomaly.AnomalyStaticRuleConfigEntity;
 import com.pm.be.enums.*;
-import com.pm.be.repository.AnomalyRuleRepository;
+import com.pm.be.repository.anomaly.AnomalyRuleRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;

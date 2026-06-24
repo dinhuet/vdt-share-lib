@@ -2,7 +2,7 @@ package com.pm.be.kafka;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.pm.be.service.SyncRegistrationService;
+import com.pm.be.service.sync.SyncRegistrationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
