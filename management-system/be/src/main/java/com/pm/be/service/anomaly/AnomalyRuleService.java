@@ -1,5 +1,7 @@
 package com.pm.be.service.anomaly;
 
+import com.pm.be.config.StaticRuleProperties;
+import com.pm.be.dto.anomaly.StaticRuleDefinition;
 import com.pm.be.dto.request.anomaly.AnomalyBaselineRuleConfigRequest;
 import com.pm.be.dto.request.anomaly.AnomalyRuleEnabledUpdateRequest;
 import com.pm.be.dto.request.anomaly.AnomalyRuleUpsertRequest;
@@ -22,8 +24,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -31,6 +39,8 @@ import java.util.UUID;
 @Transactional
 public class AnomalyRuleService {
     private final AnomalyRuleRepository anomalyRuleRepo;
+    private final StaticRuleProperties staticRuleProperties;
+    private volatile CachedStaticRules cachedStaticRules;
 
     public List<AnomalyRuleResponse> getAll() {
         return anomalyRuleRepo.findAll().stream()
@@ -52,7 +62,9 @@ public class AnomalyRuleService {
 
         AnomalyRuleEntity entity = buildRuleEntity(request, ruleCode);
         applyConfigs(entity, request);
-        return toResponse(anomalyRuleRepo.save(entity));
+        AnomalyRuleResponse response = toResponse(anomalyRuleRepo.save(entity));
+        invalidateStaticRuleCache();
+        return response;
     }
 
     public AnomalyRuleResponse update(UUID ruleId, AnomalyRuleUpsertRequest request) {
@@ -78,7 +90,9 @@ public class AnomalyRuleService {
         entity.setCooldownMinutes(request.getCooldownMinutes());
         clearConfigs(entity);
         applyConfigs(entity, request);
-        return toResponse(anomalyRuleRepo.save(entity));
+        AnomalyRuleResponse response = toResponse(anomalyRuleRepo.save(entity));
+        invalidateStaticRuleCache();
+        return response;
     }
 
     public AnomalyRuleResponse updateEnabled(UUID ruleId, AnomalyRuleEnabledUpdateRequest request) {
@@ -87,11 +101,74 @@ public class AnomalyRuleService {
         }
         AnomalyRuleEntity entity = getRule(ruleId);
         entity.setEnabled(request.getEnabled());
-        return toResponse(anomalyRuleRepo.save(entity));
+        AnomalyRuleResponse response = toResponse(anomalyRuleRepo.save(entity));
+        invalidateStaticRuleCache();
+        return response;
     }
 
     public void delete(UUID ruleId) {
         anomalyRuleRepo.delete(getRule(ruleId));
+        invalidateStaticRuleCache();
+    }
+
+    public List<StaticRuleDefinition> getEnabledStaticRulesByMetrics(Collection<String> metrics) {
+        if (metrics == null || metrics.isEmpty()) {
+            return List.of();
+        }
+        Set<String> requestedMetrics = metrics.stream()
+                .filter(StringUtils::hasText)
+                .map(String::trim)
+                .collect(java.util.stream.Collectors.toSet());
+        if (requestedMetrics.isEmpty()) {
+            return List.of();
+        }
+
+        CachedStaticRules cache = cachedStaticRules;
+        Instant now = Instant.now();
+        if (cache == null || cache.expiresAt().isBefore(now)) {
+            cache = reloadStaticRules(now);
+            cachedStaticRules = cache;
+        }
+
+        List<StaticRuleDefinition> rules = new ArrayList<>();
+        for (String metric : requestedMetrics) {
+            rules.addAll(cache.rulesByMetric().getOrDefault(metric, List.of()));
+        }
+        return rules;
+    }
+
+    private CachedStaticRules reloadStaticRules(Instant now) {
+        Map<String, List<StaticRuleDefinition>> byMetric = new HashMap<>();
+        anomalyRuleRepo.findByEnabledTrueAndRuleType(AnomalyRuleType.STATIC).stream()
+                .map(this::toStaticRuleDefinition)
+                .forEach(rule -> byMetric.computeIfAbsent(rule.metric(), ignored -> new ArrayList<>()).add(rule));
+        int ttlSeconds = staticRuleProperties.getRuleCacheTtlSeconds() == null || staticRuleProperties.getRuleCacheTtlSeconds() <= 0
+                ? 60
+                : staticRuleProperties.getRuleCacheTtlSeconds();
+        return new CachedStaticRules(Map.copyOf(byMetric), now.plusSeconds(ttlSeconds));
+    }
+
+    private StaticRuleDefinition toStaticRuleDefinition(AnomalyRuleEntity entity) {
+        AnomalyStaticRuleConfigEntity config = entity.getStaticConfig();
+        return new StaticRuleDefinition(
+                entity.getId(),
+                entity.getRuleCode(),
+                entity.getMetric(),
+                entity.getSeverity(),
+                entity.getScopeType(),
+                entity.getNotificationRuleId(),
+                config == null ? null : config.getThresholdValue(),
+                config == null ? null : config.getWindowSeconds(),
+                config == null ? null : config.getMinSampleCount(),
+                config == null ? null : config.getConsecutiveWindows(),
+                config == null ? null : config.getOperator());
+    }
+
+    private void invalidateStaticRuleCache() {
+        cachedStaticRules = null;
+    }
+
+    private record CachedStaticRules(Map<String, List<StaticRuleDefinition>> rulesByMetric, Instant expiresAt) {
     }
 
     private AnomalyRuleEntity getRule(UUID ruleId) {

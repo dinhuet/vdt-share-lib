@@ -2,9 +2,11 @@ package com.pm.be.kafka;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.pm.be.dto.anomaly.MetricExtractionResult;
 import com.pm.be.dto.anomaly.SecurityLogEventMessage;
 import com.pm.be.service.anomaly.MetricCounterService;
 import com.pm.be.service.anomaly.MetricExtractionService;
+import com.pm.be.service.anomaly.StaticRuleProcessor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -23,6 +25,7 @@ public class AnomalyDetectorConsumer {
     private final ObjectMapper objectMapper;
     private final MetricExtractionService metricExtractionService;
     private final MetricCounterService metricCounterService;
+    private final StaticRuleProcessor staticRuleProcessor;
 
     @KafkaListener(
             topics = "${vdt.anomaly.detector.kafka.topic:security.logs}",
@@ -56,7 +59,9 @@ public class AnomalyDetectorConsumer {
                 return;
             }
 
-            metricCounterService.increment(metricExtractionService.extract(event));
+            MetricExtractionResult extractionResult = metricExtractionService.extract(event);
+            metricCounterService.increment(extractionResult);
+            staticRuleProcessor.process(event, extractionResult);
         } catch (JsonProcessingException e) {
             log.warn("Skip security log event because JSON parsing failed", e);
         } catch (RuntimeException e) {

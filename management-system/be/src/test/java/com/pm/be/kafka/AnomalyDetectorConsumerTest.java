@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.pm.be.service.anomaly.MetricCounterService;
 import com.pm.be.service.anomaly.MetricExtractionService;
+import com.pm.be.service.anomaly.StaticRuleProcessor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,13 +19,14 @@ import static org.mockito.Mockito.verify;
 class AnomalyDetectorConsumerTest {
     @Mock MetricExtractionService metricExtractionService;
     @Mock MetricCounterService metricCounterService;
+    @Mock StaticRuleProcessor staticRuleProcessor;
 
     private AnomalyDetectorConsumer consumer;
 
     @BeforeEach
     void setUp() {
         ObjectMapper objectMapper = JsonMapper.builder().findAndAddModules().build();
-        consumer = new AnomalyDetectorConsumer(objectMapper, metricExtractionService, metricCounterService);
+        consumer = new AnomalyDetectorConsumer(objectMapper, metricExtractionService, metricCounterService, staticRuleProcessor);
     }
 
     @Test
