@@ -49,4 +49,7 @@ public class AnomalyBaselineRuleConfigEntity {
 
     @Column(name = "consecutive_windows", nullable = false)
     Integer consecutiveWindows;
+
+    @Column(name = "window_seconds")
+    Integer windowSeconds;
 }

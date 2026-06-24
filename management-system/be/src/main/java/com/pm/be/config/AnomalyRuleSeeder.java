@@ -81,10 +81,15 @@ public class AnomalyRuleSeeder implements ApplicationRunner {
                         .minAbsoluteThreshold(rule.minAbsoluteThreshold())
                         .minSampleCount(rule.minSampleCount())
                         .consecutiveWindows(rule.consecutiveWindows())
+                        .windowSeconds(windowSeconds(rule.metric()))
                         .build());
                 anomalyRuleRepo.save(entity);
             }
         });
+    }
+
+    private int windowSeconds(String metric) {
+        return metric != null && metric.endsWith("_1m") ? 60 : 300;
     }
 
     private AnomalyRuleEntity baseRule(
