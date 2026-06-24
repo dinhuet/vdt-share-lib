@@ -38,6 +38,9 @@ public enum ErrorCode {
     CLIENT_PERMISSION_NOTFOUND(1034, "Client permission not found"),
     CLIENT_PERMISSION_INVALID(1035, "Client permission invalid"),
     CLIENT_PERMISSION_EXISTED(1036, "Client permission already exists"),
+    ANOMALY_RULE_NOTFOUND(1037, "Anomaly rule not found"),
+    ANOMALY_RULE_INVALID(1038, "Anomaly rule invalid"),
+    ANOMALY_RULE_EXISTED(1039, "Anomaly rule already exists"),
 
     ;
 
