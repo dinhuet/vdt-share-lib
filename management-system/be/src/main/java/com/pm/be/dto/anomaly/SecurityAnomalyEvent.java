@@ -32,8 +32,12 @@ public class SecurityAnomalyEvent {
     private String metric;
     private AnomalyScopeType scopeType;
     private BigDecimal currentValue;
+    private BigDecimal baselineValue;
     private BigDecimal thresholdValue;
     private Integer windowSeconds;
+    private String timeBucket;
+    private String staticRuleCode;
+    private String baselineRuleCode;
     private Instant windowStart;
     private Instant windowEnd;
     private String message;

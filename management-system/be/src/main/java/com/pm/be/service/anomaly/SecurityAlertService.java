@@ -1,6 +1,7 @@
 package com.pm.be.service.anomaly;
 
 import com.pm.be.config.StaticRuleProperties;
+import com.pm.be.dto.anomaly.AnomalyRuleMatch;
 import com.pm.be.dto.anomaly.SecurityAnomalyEvent;
 import com.pm.be.dto.anomaly.SecurityLogEventMessage;
 import com.pm.be.dto.anomaly.StaticRuleMatch;
@@ -28,6 +29,11 @@ public class SecurityAlertService {
 
     @Transactional
     public SecurityAnomalyEvent createOrUpdate(StaticRuleMatch match) {
+        return createOrUpdate(AnomalyRuleMatch.fromStatic(match));
+    }
+
+    @Transactional
+    public SecurityAnomalyEvent createOrUpdate(AnomalyRuleMatch match) {
         String fingerprint = buildFingerprint(match);
         List<SecurityAlertStatus> openStatuses = openStatuses();
         SecurityAlertEntity alert = securityAlertRepository.findFirstByFingerprintAndStatusIn(fingerprint, openStatuses)
@@ -37,14 +43,18 @@ public class SecurityAlertService {
         return toEvent(saved, match);
     }
 
-    public String buildFingerprint(StaticRuleMatch match) {
+    public String buildFingerprint(AnomalyRuleMatch match) {
         SecurityLogEventMessage event = match.event();
         String flowType = StringUtils.hasText(event.getFlowType()) ? event.getFlowType().trim().toUpperCase(Locale.ROOT) : "UNKNOWN";
         String endpointId = StringUtils.hasText(event.getEndpointId()) ? event.getEndpointId().trim() : "none";
         return match.ruleCode() + ":" + flowType + ":" + endpointId + ":" + match.scopeType().name() + ":" + match.identity();
     }
 
-    private SecurityAlertEntity createNew(StaticRuleMatch match, String fingerprint) {
+    public String buildFingerprint(StaticRuleMatch match) {
+        return buildFingerprint(AnomalyRuleMatch.fromStatic(match));
+    }
+
+    private SecurityAlertEntity createNew(AnomalyRuleMatch match, String fingerprint) {
         SecurityLogEventMessage event = match.event();
         return SecurityAlertEntity.builder()
                 .alertType(match.ruleCode())
@@ -72,7 +82,7 @@ public class SecurityAlertService {
                 .build();
     }
 
-    private SecurityAlertEntity updateExisting(SecurityAlertEntity alert, StaticRuleMatch match) {
+    private SecurityAlertEntity updateExisting(SecurityAlertEntity alert, AnomalyRuleMatch match) {
         alert.setSeverity(maxSeverity(alert.getSeverity(), match.severity()));
         alert.setCurrentValue(max(alert.getCurrentValue(), match.currentValue()));
         alert.setThresholdValue(match.thresholdValue());
@@ -84,14 +94,14 @@ public class SecurityAlertService {
         return alert;
     }
 
-    private SecurityAnomalyEvent toEvent(SecurityAlertEntity alert, StaticRuleMatch match) {
+    private SecurityAnomalyEvent toEvent(SecurityAlertEntity alert, AnomalyRuleMatch match) {
         SecurityLogEventMessage event = match.event();
         return SecurityAnomalyEvent.builder()
                 .timestamp(Instant.now())
                 .alertId(alert.getId())
                 .eventType("ANOMALY_ALERT")
                 .ruleCode(match.ruleCode())
-                .ruleType("STATIC")
+                .ruleType(match.ruleType())
                 .severity(alert.getSeverity())
                 .status(alert.getStatus())
                 .fingerprint(alert.getFingerprint())
@@ -106,8 +116,12 @@ public class SecurityAlertService {
                 .metric(match.metric())
                 .scopeType(match.scopeType())
                 .currentValue(match.currentValue())
+                .baselineValue(match.baselineValue())
                 .thresholdValue(match.thresholdValue())
                 .windowSeconds(match.windowSeconds())
+                .timeBucket(match.timeBucket())
+                .staticRuleCode(match.staticRuleCode())
+                .baselineRuleCode(match.baselineRuleCode())
                 .windowStart(match.windowStart())
                 .windowEnd(match.windowEnd())
                 .message(alert.getMessage())
@@ -124,7 +138,16 @@ public class SecurityAlertService {
                 .toList();
     }
 
-    private String buildMessage(StaticRuleMatch match) {
+    private String buildMessage(AnomalyRuleMatch match) {
+        if ("BASELINE".equals(match.ruleType()) || "HYBRID".equals(match.ruleType())) {
+            return match.ruleCode()
+                    + " matched: "
+                    + match.metric()
+                    + "="
+                    + match.currentValue().stripTrailingZeros().toPlainString()
+                    + " exceeded dynamic baseline threshold "
+                    + match.thresholdValue().stripTrailingZeros().toPlainString();
+        }
         return match.ruleCode()
                 + " matched: "
                 + match.metric()

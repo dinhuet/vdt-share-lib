@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pm.be.dto.anomaly.MetricExtractionResult;
 import com.pm.be.dto.anomaly.SecurityLogEventMessage;
+import com.pm.be.dto.anomaly.StaticRuleMatch;
+import com.pm.be.service.anomaly.BaselineRuleProcessor;
 import com.pm.be.service.anomaly.MetricCounterService;
 import com.pm.be.service.anomaly.MetricExtractionService;
 import com.pm.be.service.anomaly.StaticRuleProcessor;
@@ -16,6 +18,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import java.time.Instant;
+import java.util.List;
 
 @Component
 @RequiredArgsConstructor
@@ -26,6 +29,7 @@ public class AnomalyDetectorConsumer {
     private final MetricExtractionService metricExtractionService;
     private final MetricCounterService metricCounterService;
     private final StaticRuleProcessor staticRuleProcessor;
+    private final BaselineRuleProcessor baselineRuleProcessor;
 
     @KafkaListener(
             topics = "${vdt.anomaly.detector.kafka.topic:security.logs}",
@@ -61,7 +65,8 @@ public class AnomalyDetectorConsumer {
 
             MetricExtractionResult extractionResult = metricExtractionService.extract(event);
             metricCounterService.increment(extractionResult);
-            staticRuleProcessor.process(event, extractionResult);
+            List<StaticRuleMatch> staticMatches = staticRuleProcessor.process(event, extractionResult);
+            baselineRuleProcessor.process(event, extractionResult, staticMatches);
         } catch (JsonProcessingException e) {
             log.warn("Skip security log event because JSON parsing failed", e);
         } catch (RuntimeException e) {
