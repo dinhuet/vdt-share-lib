@@ -27,12 +27,14 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class SecurityAlertServiceTest {
     @Mock SecurityAlertRepository repository;
+    @Mock SecurityAlertOccurrenceService occurrenceService;
+    @Mock NotificationDispatcher notificationDispatcher;
 
     private SecurityAlertService service;
 
     @BeforeEach
     void setUp() {
-        service = new SecurityAlertService(repository, new StaticRuleProperties());
+        service = new SecurityAlertService(repository, new StaticRuleProperties(), occurrenceService, notificationDispatcher);
     }
 
     @Test

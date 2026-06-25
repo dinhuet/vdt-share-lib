@@ -11,6 +11,7 @@ import com.pm.be.enums.SecurityAlertStatus;
 import com.pm.be.repository.anomaly.SecurityAlertRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -23,9 +24,12 @@ import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class SecurityAlertService {
     private final SecurityAlertRepository securityAlertRepository;
     private final StaticRuleProperties properties;
+    private final SecurityAlertOccurrenceService occurrenceService;
+    private final NotificationDispatcher notificationDispatcher;
 
     @Transactional
     public SecurityAnomalyEvent createOrUpdate(StaticRuleMatch match) {
@@ -40,7 +44,27 @@ public class SecurityAlertService {
                 .map(existing -> updateExisting(existing, match))
                 .orElseGet(() -> createNew(match, fingerprint));
         SecurityAlertEntity saved = securityAlertRepository.save(alert);
+        createOccurrence(saved, match);
+        dispatchNotification(saved);
         return toEvent(saved, match);
+    }
+
+    private void createOccurrence(SecurityAlertEntity alert, AnomalyRuleMatch match) {
+        try {
+            occurrenceService.createIfAllowed(alert, match);
+        } catch (RuntimeException e) {
+            log.warn("Failed to create security alert occurrence; alert remains persisted: alertId={} ruleCode={}",
+                    alert == null ? null : alert.getId(), match == null ? null : match.ruleCode(), e);
+        }
+    }
+
+    private void dispatchNotification(SecurityAlertEntity alert) {
+        try {
+            notificationDispatcher.dispatch(alert);
+        } catch (RuntimeException e) {
+            log.warn("Failed to dispatch security alert notification; alert remains persisted: alertId={}",
+                    alert == null ? null : alert.getId(), e);
+        }
     }
 
     public String buildFingerprint(AnomalyRuleMatch match) {
@@ -115,6 +139,7 @@ public class SecurityAlertService {
                 .resultCode(resultCode(event))
                 .metric(match.metric())
                 .scopeType(match.scopeType())
+                .scopeKey(match.scopeKey())
                 .currentValue(match.currentValue())
                 .baselineValue(match.baselineValue())
                 .thresholdValue(match.thresholdValue())

@@ -1,0 +1,41 @@
+{
+  "index_patterns": ["security-anomalies-*"],
+  "template": {
+    "settings": { "index.lifecycle.name": "security-anomaly-policy" },
+    "mappings": {
+      "dynamic": true,
+      "properties": {
+        "@timestamp": { "type": "date" },
+        "timestamp": { "type": "date" },
+        "alertId": { "type": "keyword" },
+        "eventType": { "type": "keyword" },
+        "ruleCode": { "type": "keyword" },
+        "ruleType": { "type": "keyword" },
+        "severity": { "type": "keyword" },
+        "status": { "type": "keyword" },
+        "fingerprint": { "type": "keyword", "ignore_above": 512 },
+        "serviceName": { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
+        "endpointId": { "type": "keyword" },
+        "endpointName": { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
+        "flowType": { "type": "keyword" },
+        "protocol": { "type": "keyword" },
+        "clientId": { "type": "keyword" },
+        "sourceIp": { "type": "ip", "ignore_malformed": true },
+        "resultCode": { "type": "keyword" },
+        "metric": { "type": "keyword" },
+        "scopeType": { "type": "keyword" },
+        "scopeKey": { "type": "keyword", "ignore_above": 512 },
+        "currentValue": { "type": "double" },
+        "thresholdValue": { "type": "double" },
+        "baselineValue": { "type": "double" },
+        "windowSeconds": { "type": "integer" },
+        "windowStart": { "type": "date" },
+        "windowEnd": { "type": "date" },
+        "timeBucket": { "type": "keyword" },
+        "staticRuleCode": { "type": "keyword" },
+        "baselineRuleCode": { "type": "keyword" },
+        "message": { "type": "text" }
+      }
+    }
+  }
+}

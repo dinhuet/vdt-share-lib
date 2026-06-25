@@ -41,6 +41,7 @@ public enum ErrorCode {
     ANOMALY_RULE_NOTFOUND(1037, "Anomaly rule not found"),
     ANOMALY_RULE_INVALID(1038, "Anomaly rule invalid"),
     ANOMALY_RULE_EXISTED(1039, "Anomaly rule already exists"),
+    SECURITY_ALERT_NOTFOUND(1040, "Security alert not found"),
 
     ;
 

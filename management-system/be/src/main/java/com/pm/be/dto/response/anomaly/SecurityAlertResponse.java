@@ -1,4 +1,4 @@
-package com.pm.be.dto.anomaly;
+package com.pm.be.dto.response.anomaly;
 
 import com.pm.be.enums.AnomalyScopeType;
 import com.pm.be.enums.AnomalySeverity;
@@ -7,17 +7,14 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.math.BigDecimal;
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Data
 @Builder
-public class SecurityAnomalyEvent {
-    private Instant timestamp;
-    private UUID alertId;
-    private String eventType;
-    private String ruleCode;
-    private String ruleType;
+public class SecurityAlertResponse {
+    private UUID id;
+    private String alertType;
     private AnomalySeverity severity;
     private SecurityAlertStatus status;
     private String fingerprint;
@@ -31,15 +28,21 @@ public class SecurityAnomalyEvent {
     private String resultCode;
     private String metric;
     private AnomalyScopeType scopeType;
-    private String scopeKey;
     private BigDecimal currentValue;
-    private BigDecimal baselineValue;
     private BigDecimal thresholdValue;
     private Integer windowSeconds;
-    private String timeBucket;
-    private String staticRuleCode;
-    private String baselineRuleCode;
-    private Instant windowStart;
-    private Instant windowEnd;
+    private Long count;
     private String message;
+    private UUID notificationRuleId;
+    private LocalDateTime firstSeenAt;
+    private LocalDateTime lastSeenAt;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+    private String acknowledgedBy;
+    private LocalDateTime acknowledgedAt;
+    private String ignoredBy;
+    private LocalDateTime ignoredAt;
+    private LocalDateTime ignoredUntil;
+    private String resolvedBy;
+    private LocalDateTime resolvedAt;
 }

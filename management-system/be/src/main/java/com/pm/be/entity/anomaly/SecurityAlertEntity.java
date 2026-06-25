@@ -104,6 +104,27 @@ public class SecurityAlertEntity {
     @Column(name = "updated_at")
     LocalDateTime updatedAt;
 
+    @Column(name = "acknowledged_by", length = 100)
+    String acknowledgedBy;
+
+    @Column(name = "acknowledged_at")
+    LocalDateTime acknowledgedAt;
+
+    @Column(name = "ignored_by", length = 100)
+    String ignoredBy;
+
+    @Column(name = "ignored_at")
+    LocalDateTime ignoredAt;
+
+    @Column(name = "ignored_until")
+    LocalDateTime ignoredUntil;
+
+    @Column(name = "resolved_by", length = 100)
+    String resolvedBy;
+
+    @Column(name = "resolved_at")
+    LocalDateTime resolvedAt;
+
     @PrePersist
     public void prePersist() {
         LocalDateTime now = LocalDateTime.now();

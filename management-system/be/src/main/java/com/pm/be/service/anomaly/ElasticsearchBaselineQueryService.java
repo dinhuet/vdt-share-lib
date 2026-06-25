@@ -22,7 +22,7 @@ import java.util.*;
 public class ElasticsearchBaselineQueryService {
     private static final Set<String> SUPPORTED_METRICS = Set.of(
             "request_count_1m", "error_rate_5m", "denied_rate_5m", "timeout_rate_5m",
-            "retry_rate_5m", "p95_duration_5m", "auth_fail_rate_5m");
+            "retry_rate_5m", "p95_duration_5m", "auth_fail_rate_5m", "slow_request_rate_5m");
 
     private final BaselineJobProperties properties;
 
@@ -85,7 +85,8 @@ public class ElasticsearchBaselineQueryService {
                 "denied", filter("doc['status.keyword'].value == 'DENIED'"),
                 "timeout", filter("doc['status.keyword'].value == 'TIMEOUT' || (!doc['resultCode.keyword'].empty && doc['resultCode.keyword'].value == 'TIMEOUT_EXCEEDED')"),
                 "retry", filter("doc['status.keyword'].value == 'RETRY' || (!doc['resultCode.keyword'].empty && doc['resultCode.keyword'].value == 'RETRY_SCHEDULED') || (!doc['retryAttempt'].empty && doc['retryAttempt'].value > 1)"),
-                "authFail", filter("!doc['resultCode.keyword'].empty && doc['resultCode.keyword'].value.startsWith('AUTH_') && doc['resultCode.keyword'].value != 'AUTH_NONCE_REPLAYED'")
+                "authFail", filter("!doc['resultCode.keyword'].empty && doc['resultCode.keyword'].value.startsWith('AUTH_') && doc['resultCode.keyword'].value != 'AUTH_NONCE_REPLAYED'"),
+                "slowRequest", filter("!doc['durationMs'].empty && !doc['latencyThresholdMs'].empty && doc['durationMs'].value > doc['latencyThresholdMs'].value")
         );
     }
 
@@ -133,6 +134,7 @@ public class ElasticsearchBaselineQueryService {
             case "timeout_rate_5m" -> ratio(window.path("timeout").path("doc_count").asDouble(), requestCount);
             case "retry_rate_5m" -> ratio(window.path("retry").path("doc_count").asDouble(), requestCount);
             case "auth_fail_rate_5m" -> ratio(window.path("authFail").path("doc_count").asDouble(), requestCount);
+            case "slow_request_rate_5m" -> ratio(window.path("slowRequest").path("doc_count").asDouble(), requestCount);
             case "p95_duration_5m" -> window.path("duration_p95").path("values").path("95.0").asDouble(Double.NaN);
             default -> Double.NaN;
         };

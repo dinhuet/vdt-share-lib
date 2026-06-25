@@ -46,4 +46,39 @@ class AnomalyDetectorConsumerTest {
         verify(metricExtractionService, never()).extract(any());
         verify(metricCounterService, never()).increment(any());
     }
+
+    @Test
+    void handle_payloadWithUnknownAuditFields_shouldProcessEvent() {
+        consumer.handle("""
+                {
+                  "timestamp":"2026-06-25T04:26:27.486100800Z",
+                  "traceId":null,
+                  "correlationId":null,
+                  "serviceName":"order-service",
+                  "endpointId":"6049f03a-c4ee-3689-840e-f666f133dcc5",
+                  "endpointName":"get-orders",
+                  "flowType":"INBOUND_HTTP",
+                  "direction":"INBOUND",
+                  "protocol":"HTTP",
+                  "method":"GET",
+                  "path":"/api/orders",
+                  "clientId":"79d0f072-3017-4fc2-aff5-dd7ceda614d4",
+                  "sourceIp":"0:0:0:0:0:0:0:1",
+                  "status":"DENIED",
+                  "resultCode":"AUTH_SIGNATURE_INVALID",
+                  "errorCode":"AUTH_SIGNATURE_INVALID",
+                  "denyReason":"Invalid request signature",
+                  "durationMs":8,
+                  "latencyThresholdMs":1000,
+                  "timeoutMs":30000,
+                  "retryDelayMs":null,
+                  "failureAction":null,
+                  "retentionDays":30,
+                  "retentionBucket":"r30"
+                }
+                """);
+
+        verify(metricExtractionService).extract(any());
+        verify(metricCounterService).increment(any());
+    }
 }
