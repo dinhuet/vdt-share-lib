@@ -5,3 +5,5 @@ plan/
 spec/
 /.vdt-share/
 /doc/
+.idea/ 
+/.agents/

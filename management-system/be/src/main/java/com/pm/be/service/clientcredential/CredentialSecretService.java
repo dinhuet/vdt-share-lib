@@ -22,7 +22,7 @@ public class CredentialSecretService {
     private final SecureRandom secureRandom = new SecureRandom();
     private final String encryptionKey;
 
-    public CredentialSecretService(@Value("${app.client-credential.encryption-key:vdt-shared-lib-dev-key}") String encryptionKey) {
+    public CredentialSecretService(@Value("${app.client-credential.encryption-key}") String encryptionKey) {
         this.encryptionKey = encryptionKey;
     }
 
