@@ -4,6 +4,7 @@ import AccessPoliciesPage from '../features/accessPolicies/AccessPoliciesPage';
 import ClientApisPage from '../features/clientApis/ClientApisPage';
 import ClientsPage from '../features/clients/ClientsPage';
 import ExposedApisPage from '../features/exposedApis/ExposedApisPage';
+import SecurityAlertsPage from '../features/securityAlerts/SecurityAlertsPage';
 import { ROUTES } from '../utils/constants';
 
 export default function AppRoutes({ activeRoute }) {
@@ -25,6 +26,10 @@ export default function AppRoutes({ activeRoute }) {
 
   if (activeRoute === ROUTES.ACCESS_POLICIES) {
     return <AccessPoliciesPage />;
+  }
+
+  if (activeRoute === ROUTES.SECURITY_ALERTS) {
+    return <SecurityAlertsPage />;
   }
 
   return <ExposedApisPage />;

@@ -7,6 +7,7 @@ const navItems = [
   ['Client APIs', '▱', ROUTES.CLIENT_APIS],
   ['Default Configs', '⚙', ROUTES.DEFAULT_CONFIGS],
   ['Security Policies', '⬟', ROUTES.ACCESS_POLICIES],
+  ['Security Alerts', '⚠', ROUTES.SECURITY_ALERTS],
 ];
 
 function getDisplayName(user) {
