@@ -106,7 +106,7 @@ class BaselineRuleEngineTest {
     }
 
     private BaselineRuleDefinition rule(String code, String metric, AnomalyScopeType scopeType, int minSampleCount, int consecutiveWindows) {
-        return new BaselineRuleDefinition(UUID.randomUUID(), code, metric, AnomalySeverity.MEDIUM, scopeType, null, null,
+        return new BaselineRuleDefinition(UUID.randomUUID(), code, metric, AnomalySeverity.MEDIUM, scopeType, null, null, null,
                 7, AnomalyTimeBucketType.SAME_HOUR, 95, BigDecimal.valueOf(2), BigDecimal.valueOf(50), null,
                 minSampleCount, consecutiveWindows, metric.endsWith("_1m") ? 60 : 300);
     }

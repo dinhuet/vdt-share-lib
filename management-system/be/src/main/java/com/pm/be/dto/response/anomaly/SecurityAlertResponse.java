@@ -34,6 +34,7 @@ public class SecurityAlertResponse {
     private Long count;
     private String message;
     private UUID notificationRuleId;
+    private Integer cooldownMinutes;
     private LocalDateTime firstSeenAt;
     private LocalDateTime lastSeenAt;
     private LocalDateTime createdAt;

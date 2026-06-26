@@ -157,6 +157,7 @@ public class AnomalyRuleService {
                 entity.getSeverity(),
                 entity.getScopeType(),
                 entity.getNotificationRuleId(),
+                entity.getCooldownMinutes(),
                 config == null ? null : config.getThresholdValue(),
                 config == null ? null : config.getWindowSeconds(),
                 config == null ? null : config.getMinSampleCount(),
@@ -227,7 +228,8 @@ public class AnomalyRuleService {
                 || !isPositive(request.getMultiplier())
                 || request.getMinAbsoluteThreshold() == null || request.getMinAbsoluteThreshold().compareTo(BigDecimal.ZERO) < 0
                 || request.getMinSampleCount() == null || request.getMinSampleCount() <= 0
-                || request.getConsecutiveWindows() == null || request.getConsecutiveWindows() <= 0) {
+                || request.getConsecutiveWindows() == null || request.getConsecutiveWindows() <= 0
+                || request.getWindowSeconds() == null || request.getWindowSeconds() <= 0) {
             throw new AppException(ErrorCode.ANOMALY_RULE_INVALID);
         }
         if (request.getMaxAbsoluteThreshold() != null
@@ -276,6 +278,7 @@ public class AnomalyRuleService {
                     .maxAbsoluteThreshold(config.getMaxAbsoluteThreshold())
                     .minSampleCount(config.getMinSampleCount())
                     .consecutiveWindows(config.getConsecutiveWindows())
+                    .windowSeconds(config.getWindowSeconds())
                     .build());
         }
     }
@@ -350,6 +353,7 @@ public class AnomalyRuleService {
                 .maxAbsoluteThreshold(entity.getMaxAbsoluteThreshold())
                 .minSampleCount(entity.getMinSampleCount())
                 .consecutiveWindows(entity.getConsecutiveWindows())
+                .windowSeconds(entity.getWindowSeconds())
                 .build();
     }
 }

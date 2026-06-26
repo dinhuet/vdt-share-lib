@@ -85,6 +85,7 @@ public class StaticRuleEngine {
                 windowStart,
                 windowStart.plusSeconds(rule.windowSeconds()),
                 rule.notificationRuleId(),
+                rule.cooldownMinutes(),
                 event));
     }
 

@@ -87,7 +87,7 @@ class SecurityAlertOccurrenceServiceTest {
         event.setTimestamp(Instant.parse("2026-06-23T10:00:01Z"));
         return new AnomalyRuleMatch(null, "AUTH_BRUTE_FORCE", "STATIC", AnomalySeverity.HIGH, "auth_fail_count",
                 AnomalyScopeType.ENDPOINT_CLIENT, "scope", "client-a", BigDecimal.TEN, null, BigDecimal.ONE, 60,
-                null, "AUTH_BRUTE_FORCE", null, null, Instant.parse("2026-06-23T10:00:00Z"),
+                null, "AUTH_BRUTE_FORCE", null, null, null, Instant.parse("2026-06-23T10:00:00Z"),
                 Instant.parse("2026-06-23T10:01:00Z"), event);
     }
 }

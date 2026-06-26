@@ -48,6 +48,7 @@ public class AnomalyNotificationProperties {
     }
 
     public static class EmailChannel extends Channel {
+        private String to;
         private String from = "no-reply@vdt.local";
         private String subjectPrefix = "[VDT Security Alert]";
 
@@ -59,6 +60,8 @@ public class AnomalyNotificationProperties {
             super(enabled);
         }
 
+        public String getTo() { return to; }
+        public void setTo(String to) { this.to = to; }
         public String getFrom() { return from; }
         public void setFrom(String from) { this.from = from; }
         public String getSubjectPrefix() { return subjectPrefix; }

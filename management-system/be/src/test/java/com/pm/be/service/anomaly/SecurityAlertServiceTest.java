@@ -80,6 +80,6 @@ class SecurityAlertServiceTest {
         event.setResultCode("AUTH_API_KEY_INVALID");
         return new StaticRuleMatch(null, "AUTH_BRUTE_FORCE", AnomalySeverity.HIGH, "auth_fail_count", AnomalyScopeType.ENDPOINT_CLIENT,
                 "INBOUND_HTTP:endpoint-1:client:client-a", "client-a", currentValue, BigDecimal.valueOf(5), 60,
-                Instant.parse("2026-06-23T10:00:00Z"), Instant.parse("2026-06-23T10:01:00Z"), null, event);
+                Instant.parse("2026-06-23T10:00:00Z"), Instant.parse("2026-06-23T10:01:00Z"), null, 7, event);
     }
 }

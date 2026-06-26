@@ -53,14 +53,14 @@ class HybridRuleEngineTest {
         SecurityLogEventMessage event = event(clientId);
         return new StaticRuleMatch(UUID.randomUUID(), ruleCode, AnomalySeverity.HIGH, "auth_fail_count", AnomalyScopeType.ENDPOINT_CLIENT,
                 "INBOUND_HTTP:endpoint-1:client:" + clientId, clientId, BigDecimal.valueOf(5), BigDecimal.valueOf(5), 60,
-                Instant.parse("2026-06-23T10:00:00Z"), Instant.parse("2026-06-23T10:01:00Z"), null, event);
+                Instant.parse("2026-06-23T10:00:00Z"), Instant.parse("2026-06-23T10:01:00Z"), null, null, event);
     }
 
     private BaselineRuleMatch baselineMatch(String ruleCode, String clientId) {
         SecurityLogEventMessage event = event(clientId);
         return new BaselineRuleMatch(UUID.randomUUID(), ruleCode, AnomalySeverity.HIGH, "auth_fail_rate_5m", AnomalyScopeType.ENDPOINT_CLIENT,
                 "INBOUND_HTTP:endpoint-1:client:" + clientId, clientId, BigDecimal.valueOf(0.4), BigDecimal.valueOf(0.05), BigDecimal.valueOf(0.3),
-                BigDecimal.valueOf(2), BigDecimal.valueOf(0.2), 300, "HOUR_10", null,
+                BigDecimal.valueOf(2), BigDecimal.valueOf(0.2), 300, "HOUR_10", null, null,
                 Instant.parse("2026-06-23T10:00:00Z"), Instant.parse("2026-06-23T10:05:00Z"), event);
     }
 

@@ -76,7 +76,7 @@ public class BaselineRuleEngine {
         Instant windowStart = Instant.ofEpochSecond(currentWindowStart);
         return Optional.of(new BaselineRuleMatch(rule.ruleId(), rule.ruleCode(), rule.severity(), rule.metric(), candidate.scopeType(),
                 candidate.scopeKey(), candidate.identity(), lastValue, resolvedBaseline.baseline().getValue(), threshold, rule.multiplier(),
-                rule.minAbsoluteThreshold(), rule.windowSeconds(), resolvedBaseline.timeBucket(), rule.notificationRuleId(), windowStart,
+                rule.minAbsoluteThreshold(), rule.windowSeconds(), resolvedBaseline.timeBucket(), rule.notificationRuleId(), rule.cooldownMinutes(), windowStart,
                 windowStart.plusSeconds(rule.windowSeconds()), event));
     }
 

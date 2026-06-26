@@ -79,7 +79,7 @@ class StaticRuleEngineTest {
 
     private StaticRuleDefinition rule(AnomalyScopeType scopeType) {
         return new StaticRuleDefinition(UUID.randomUUID(), "AUTH_BRUTE_FORCE", "auth_fail_count", AnomalySeverity.HIGH,
-                scopeType, null, BigDecimal.valueOf(5), 60, 1, 1, AnomalyRuleOperator.GTE);
+                scopeType, null, null, BigDecimal.valueOf(5), 60, 1, 1, AnomalyRuleOperator.GTE);
     }
 
     private MetricExtractionResult extraction() {

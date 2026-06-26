@@ -21,5 +21,6 @@ public record StaticRuleMatch(
         Instant windowStart,
         Instant windowEnd,
         UUID notificationRuleId,
+        Integer cooldownMinutes,
         SecurityLogEventMessage event) {
 }

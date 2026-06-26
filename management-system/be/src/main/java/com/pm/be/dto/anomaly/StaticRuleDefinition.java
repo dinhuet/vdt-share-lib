@@ -14,6 +14,7 @@ public record StaticRuleDefinition(
         AnomalySeverity severity,
         AnomalyScopeType scopeType,
         UUID notificationRuleId,
+        Integer cooldownMinutes,
         BigDecimal thresholdValue,
         Integer windowSeconds,
         Integer minSampleCount,

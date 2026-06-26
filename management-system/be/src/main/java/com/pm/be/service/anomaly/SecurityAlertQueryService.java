@@ -122,7 +122,7 @@ public class SecurityAlertQueryService {
                 .clientId(entity.getClientId()).sourceIp(entity.getSourceIp()).resultCode(entity.getResultCode())
                 .metric(entity.getMetric()).scopeType(entity.getScopeType()).currentValue(entity.getCurrentValue())
                 .thresholdValue(entity.getThresholdValue()).windowSeconds(entity.getWindowSeconds()).count(entity.getCount())
-                .message(entity.getMessage()).notificationRuleId(entity.getNotificationRuleId()).firstSeenAt(entity.getFirstSeenAt())
+                .message(entity.getMessage()).notificationRuleId(entity.getNotificationRuleId()).cooldownMinutes(entity.getCooldownMinutes()).firstSeenAt(entity.getFirstSeenAt())
                 .lastSeenAt(entity.getLastSeenAt()).createdAt(entity.getCreatedAt()).updatedAt(entity.getUpdatedAt())
                 .acknowledgedBy(entity.getAcknowledgedBy()).acknowledgedAt(entity.getAcknowledgedAt())
                 .ignoredBy(entity.getIgnoredBy()).ignoredAt(entity.getIgnoredAt()).ignoredUntil(entity.getIgnoredUntil())

@@ -49,7 +49,7 @@ public class BaselineRuleConfigService {
         int windowSeconds = positiveOrDefault(config.getWindowSeconds(), defaultWindowSeconds(rule.getMetric()));
         AnomalyTimeBucketType bucketType = config.getTimeBucketType() == null ? AnomalyTimeBucketType.SAME_HOUR : config.getTimeBucketType();
         return new BaselineRuleDefinition(rule.getId(), rule.getRuleCode(), rule.getMetric(), rule.getSeverity(), rule.getScopeType(), rule.getScopeId(),
-                rule.getNotificationRuleId(), historyDays, bucketType, percentile, positiveOrDefault(config.getMultiplier(), BigDecimal.ONE),
+                rule.getNotificationRuleId(), rule.getCooldownMinutes(), historyDays, bucketType, percentile, positiveOrDefault(config.getMultiplier(), BigDecimal.ONE),
                 positiveOrDefault(config.getMinAbsoluteThreshold(), BigDecimal.ZERO), config.getMaxAbsoluteThreshold(),
                 positiveOrDefault(config.getMinSampleCount(), 1), positiveOrDefault(config.getConsecutiveWindows(), 1), windowSeconds);
     }

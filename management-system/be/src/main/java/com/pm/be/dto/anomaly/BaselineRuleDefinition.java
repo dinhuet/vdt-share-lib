@@ -15,6 +15,7 @@ public record BaselineRuleDefinition(
         AnomalyScopeType configuredScopeType,
         String configuredScopeId,
         UUID notificationRuleId,
+        Integer cooldownMinutes,
         int historyDays,
         AnomalyTimeBucketType timeBucketType,
         int percentile,

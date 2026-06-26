@@ -60,7 +60,9 @@ public class HybridRuleEngine {
         return new AnomalyRuleMatch(null, hybridRuleCode, "HYBRID", severity, baselineMatch.metric(), baselineMatch.scopeType(),
                 baselineMatch.scopeKey(), baselineMatch.identity(), baselineMatch.currentValue(), baselineMatch.baselineValue(),
                 baselineMatch.thresholdValue(), baselineMatch.windowSeconds(), baselineMatch.timeBucket(), staticMatch.ruleCode(),
-                baselineMatch.ruleCode(), baselineMatch.notificationRuleId(), baselineMatch.windowStart(), baselineMatch.windowEnd(), baselineMatch.event());
+                baselineMatch.ruleCode(), baselineMatch.notificationRuleId(),
+                baselineMatch.cooldownMinutes() != null ? baselineMatch.cooldownMinutes() : staticMatch.cooldownMinutes(),
+                baselineMatch.windowStart(), baselineMatch.windowEnd(), baselineMatch.event());
     }
 
     private AnomalySeverity upgrade(AnomalySeverity severity) {

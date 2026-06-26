@@ -92,6 +92,9 @@ public class SecurityAlertEntity {
     @Column(name = "notification_rule_id")
     UUID notificationRuleId;
 
+    @Column(name = "cooldown_minutes")
+    Integer cooldownMinutes;
+
     @Column(name = "first_seen_at")
     LocalDateTime firstSeenAt;
 

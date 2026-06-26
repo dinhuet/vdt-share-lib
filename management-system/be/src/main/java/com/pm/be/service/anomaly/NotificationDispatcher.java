@@ -52,9 +52,9 @@ public class NotificationDispatcher {
         }
 
         UUID ruleId = rule.map(NotificationRuleEntity::getId).orElse(null);
-        int cooldownMinutes = rule.map(NotificationRuleEntity::getCooldownMinutes)
-                .filter(value -> value != null && value > 0)
-                .orElseGet(() -> properties.getCooldownDefaultMinutes() == null ? 15 : properties.getCooldownDefaultMinutes());
+        int cooldownMinutes = alert.getCooldownMinutes() != null && alert.getCooldownMinutes() > 0
+                ? alert.getCooldownMinutes()
+                : properties.getCooldownDefaultMinutes() == null ? 15 : properties.getCooldownDefaultMinutes();
         if (isBelowSeverity(alert.getSeverity(), rule.map(NotificationRuleEntity::getSeverity).orElse(null))) {
             deliveryService.record(alert.getId(), ruleId, NotificationChannel.CENTRAL,
                     properties.getDashboardUrl(), NotificationDeliveryStatus.SKIPPED_SEVERITY, 0, "Severity below notification rule threshold");
@@ -62,15 +62,28 @@ public class NotificationDispatcher {
         }
 
         recordCentral(alert, ruleId, cooldownMinutes);
-        for (String recipient : emailRecipients(rule.map(NotificationRuleEntity::getRecipients).orElse(null))) {
-            dispatchChannel(alert, ruleId, NotificationChannel.EMAIL, recipient, cooldownMinutes, properties.isEmailEnabled());
-        }
+        dispatchEmail(alert, ruleId, cooldownMinutes);
         for (String recipient : channelRecipients(rule.map(NotificationRuleEntity::getRecipients).orElse(null), "webhook", "webhooks")) {
             dispatchChannel(alert, ruleId, NotificationChannel.WEBHOOK, recipient, cooldownMinutes, properties.isWebhookEnabled());
         }
         for (String recipient : channelRecipients(rule.map(NotificationRuleEntity::getRecipients).orElse(null), "sms", "phones")) {
             dispatchChannel(alert, ruleId, NotificationChannel.SMS, recipient, cooldownMinutes, properties.isSmsEnabled());
         }
+    }
+
+    private void dispatchEmail(SecurityAlertEntity alert, UUID ruleId, int cooldownMinutes) {
+        if (!policyService.isChannelAllowed(alert, NotificationChannel.EMAIL)) {
+            return;
+        }
+        String recipient = properties.getEmail() == null ? null : properties.getEmail().getTo();
+        if (!StringUtils.hasText(recipient)) {
+            if (properties.isEmailEnabled()) {
+                deliveryService.record(alert.getId(), ruleId, NotificationChannel.EMAIL, null,
+                        NotificationDeliveryStatus.SKIPPED_DISABLED, 0, "Email recipient vdt.anomaly.notification.email.to is not configured");
+            }
+            return;
+        }
+        dispatchChannel(alert, ruleId, NotificationChannel.EMAIL, recipient.trim(), cooldownMinutes, properties.isEmailEnabled());
     }
 
     private void recordCentral(SecurityAlertEntity alert, UUID ruleId, int cooldownMinutes) {
@@ -125,10 +138,6 @@ public class NotificationDispatcher {
             log.warn("Unknown notification severity threshold {}; rule will be treated as enabled for all severities", threshold);
             return false;
         }
-    }
-
-    private List<String> emailRecipients(String recipientsJson) {
-        return channelRecipients(recipientsJson, "email", "emails");
     }
 
     private List<String> channelRecipients(String recipientsJson, String singular, String plural) {

@@ -20,4 +20,5 @@ public class AnomalyBaselineRuleConfigResponse {
     BigDecimal maxAbsoluteThreshold;
     Integer minSampleCount;
     Integer consecutiveWindows;
+    Integer windowSeconds;
 }

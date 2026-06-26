@@ -23,6 +23,7 @@ public record BaselineRuleMatch(
         Integer windowSeconds,
         String timeBucket,
         UUID notificationRuleId,
+        Integer cooldownMinutes,
         Instant windowStart,
         Instant windowEnd,
         SecurityLogEventMessage event) {

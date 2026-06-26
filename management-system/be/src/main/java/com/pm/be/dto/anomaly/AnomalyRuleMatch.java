@@ -24,6 +24,7 @@ public record AnomalyRuleMatch(
         String staticRuleCode,
         String baselineRuleCode,
         UUID notificationRuleId,
+        Integer cooldownMinutes,
         Instant windowStart,
         Instant windowEnd,
         SecurityLogEventMessage event) {
@@ -31,12 +32,12 @@ public record AnomalyRuleMatch(
     public static AnomalyRuleMatch fromStatic(StaticRuleMatch match) {
         return new AnomalyRuleMatch(match.ruleId(), match.ruleCode(), "STATIC", match.severity(), match.metric(),
                 match.scopeType(), match.scopeKey(), match.identity(), match.currentValue(), null, match.thresholdValue(),
-                match.windowSeconds(), null, match.ruleCode(), null, match.notificationRuleId(), match.windowStart(), match.windowEnd(), match.event());
+                match.windowSeconds(), null, match.ruleCode(), null, match.notificationRuleId(), match.cooldownMinutes(), match.windowStart(), match.windowEnd(), match.event());
     }
 
     public static AnomalyRuleMatch fromBaseline(BaselineRuleMatch match) {
         return new AnomalyRuleMatch(match.ruleId(), match.ruleCode(), "BASELINE", match.severity(), match.metric(),
                 match.scopeType(), match.scopeKey(), match.identity(), match.currentValue(), match.baselineValue(), match.thresholdValue(),
-                match.windowSeconds(), match.timeBucket(), null, match.ruleCode(), match.notificationRuleId(), match.windowStart(), match.windowEnd(), match.event());
+                match.windowSeconds(), match.timeBucket(), null, match.ruleCode(), match.notificationRuleId(), match.cooldownMinutes(), match.windowStart(), match.windowEnd(), match.event());
     }
 }

@@ -101,6 +101,7 @@ public class SecurityAlertService {
                 .count(match.currentValue().longValue())
                 .message(buildMessage(match))
                 .notificationRuleId(match.notificationRuleId())
+                .cooldownMinutes(match.cooldownMinutes())
                 .firstSeenAt(toLocalDateTime(match.event().getTimestamp()))
                 .lastSeenAt(toLocalDateTime(match.event().getTimestamp()))
                 .build();
@@ -115,6 +116,9 @@ public class SecurityAlertService {
         alert.setMessage(buildMessage(match));
         alert.setLastSeenAt(toLocalDateTime(match.event().getTimestamp()));
         alert.setResultCode(resultCode(match.event()));
+        if (match.cooldownMinutes() != null) {
+            alert.setCooldownMinutes(match.cooldownMinutes());
+        }
         return alert;
     }
 
