@@ -32,15 +32,18 @@ class NotificationDispatcherTest {
     @Mock NotificationCooldownService cooldownService;
     @Mock NotificationDeliveryService deliveryService;
     @Mock NotificationChannelSender sender;
+    @Mock SecurityAlertBlacklistService blacklistService;
 
     private AnomalyNotificationProperties properties;
+    private NotificationPolicyService policyService;
     private NotificationDispatcher dispatcher;
 
     @BeforeEach
     void setUp() {
         properties = new AnomalyNotificationProperties();
         properties.getEmail().setEnabled(true);
-        dispatcher = new NotificationDispatcher(properties, resolver, cooldownService, deliveryService, List.of(sender), new ObjectMapper());
+        policyService = new NotificationPolicyService();
+        dispatcher = new NotificationDispatcher(properties, resolver, cooldownService, deliveryService, policyService, blacklistService, List.of(sender), new ObjectMapper());
     }
 
     @Test
@@ -83,6 +86,20 @@ class NotificationDispatcherTest {
         dispatcher.dispatch(alert);
 
         verify(deliveryService).record(eq(alert.getId()), eq(ruleId), eq(NotificationChannel.EMAIL), eq("admin@example.com"), eq(NotificationDeliveryStatus.FAILED), eq(1), eq("SMTP down"));
+    }
+
+    @Test
+    void dispatch_mediumEmailRecipient_shouldRecordSkippedSeverity() {
+        SecurityAlertEntity alert = alert(AnomalySeverity.MEDIUM);
+        UUID ruleId = UUID.randomUUID();
+        NotificationRuleEntity rule = NotificationRuleEntity.builder()
+                .id(ruleId).enabled(true).cooldownMinutes(15).recipients("{\"emails\":[\"admin@example.com\"]}").build();
+        when(resolver.resolve(alert)).thenReturn(Optional.of(rule));
+        when(cooldownService.reserve(eq(ruleId), eq(alert.getAlertType()), eq(alert.getFingerprint()), eq(NotificationChannel.CENTRAL), any(), eq(15))).thenReturn(true);
+
+        dispatcher.dispatch(alert);
+
+        verify(deliveryService).record(eq(alert.getId()), eq(ruleId), eq(NotificationChannel.EMAIL), eq("admin@example.com"), eq(NotificationDeliveryStatus.SKIPPED_SEVERITY), eq(0), any());
     }
 
     private SecurityAlertEntity alert(AnomalySeverity severity) {

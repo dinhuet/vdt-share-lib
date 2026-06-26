@@ -13,6 +13,8 @@ public interface ExposedApiRepository extends JpaRepository<ExposedApiEntity, UU
 
     Optional<ExposedApiEntity> findByMicroServiceIdAndEndpointId(UUID microServiceId, UUID endpointId);
 
+    Optional<ExposedApiEntity> findByEndpointId(UUID endpointId);
+
     List<ExposedApiEntity> findByMicroServiceId(UUID microServiceId);
 
     List<ExposedApiEntity> findByMicroServiceIdAndUseDefaultConfig(UUID microServiceId, Boolean useDefaultConfig);

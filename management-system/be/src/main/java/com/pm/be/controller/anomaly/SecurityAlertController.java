@@ -1,13 +1,16 @@
 package com.pm.be.controller.anomaly;
 
 import com.pm.be.dto.request.anomaly.SecurityAlertActionRequest;
+import com.pm.be.dto.request.anomaly.SecurityAlertTemporaryBlacklistRequest;
 import com.pm.be.dto.response.ApiResponse;
 import com.pm.be.dto.response.anomaly.NotificationDeliveryResponse;
 import com.pm.be.dto.response.anomaly.SecurityAlertOccurrenceResponse;
 import com.pm.be.dto.response.anomaly.SecurityAlertResponse;
+import com.pm.be.dto.response.anomaly.SecurityAlertSummaryResponse;
 import com.pm.be.enums.AnomalySeverity;
 import com.pm.be.enums.SecurityAlertStatus;
 import com.pm.be.service.anomaly.SecurityAlertActionService;
+import com.pm.be.service.anomaly.SecurityAlertBlacklistService;
 import com.pm.be.service.anomaly.SecurityAlertQueryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -23,6 +26,7 @@ import java.util.UUID;
 public class SecurityAlertController {
     private final SecurityAlertQueryService queryService;
     private final SecurityAlertActionService actionService;
+    private final SecurityAlertBlacklistService blacklistService;
 
     @GetMapping
     public ApiResponse<List<SecurityAlertResponse>> search(
@@ -45,6 +49,20 @@ public class SecurityAlertController {
     public ApiResponse<SecurityAlertResponse> getById(@PathVariable UUID id) {
         return ApiResponse.<SecurityAlertResponse>builder()
                 .result(queryService.getById(id))
+                .build();
+    }
+
+    @GetMapping("/summary")
+    public ApiResponse<SecurityAlertSummaryResponse> summary() {
+        return ApiResponse.<SecurityAlertSummaryResponse>builder()
+                .result(queryService.summary())
+                .build();
+    }
+
+    @GetMapping("/recent")
+    public ApiResponse<List<SecurityAlertResponse>> recent(@RequestParam(required = false) Integer limit) {
+        return ApiResponse.<List<SecurityAlertResponse>>builder()
+                .result(queryService.recent(limit))
                 .build();
     }
 
@@ -80,6 +98,14 @@ public class SecurityAlertController {
     public ApiResponse<SecurityAlertResponse> resolve(@PathVariable UUID id, @RequestBody(required = false) SecurityAlertActionRequest request) {
         return ApiResponse.<SecurityAlertResponse>builder()
                 .result(queryService.toResponse(actionService.resolve(id, request)))
+                .build();
+    }
+
+    @PostMapping("/{id}/blacklist-temporary")
+    public ApiResponse<SecurityAlertResponse> blacklistTemporary(@PathVariable UUID id,
+                                                                 @RequestBody SecurityAlertTemporaryBlacklistRequest request) {
+        return ApiResponse.<SecurityAlertResponse>builder()
+                .result(queryService.toResponse(blacklistService.temporaryBlacklist(id, request)))
                 .build();
     }
 }

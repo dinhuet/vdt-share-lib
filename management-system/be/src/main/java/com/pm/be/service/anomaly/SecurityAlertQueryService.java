@@ -3,6 +3,7 @@ package com.pm.be.service.anomaly;
 import com.pm.be.dto.response.anomaly.NotificationDeliveryResponse;
 import com.pm.be.dto.response.anomaly.SecurityAlertOccurrenceResponse;
 import com.pm.be.dto.response.anomaly.SecurityAlertResponse;
+import com.pm.be.dto.response.anomaly.SecurityAlertSummaryResponse;
 import com.pm.be.entity.anomaly.NotificationDeliveryEntity;
 import com.pm.be.entity.anomaly.SecurityAlertEntity;
 import com.pm.be.entity.anomaly.SecurityAlertOccurrenceEntity;
@@ -14,6 +15,7 @@ import com.pm.be.repository.anomaly.SecurityAlertRepository;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -55,6 +57,25 @@ public class SecurityAlertQueryService {
     public List<NotificationDeliveryResponse> notifications(UUID alertId) {
         ensureAlertExists(alertId);
         return deliveryService.findByAlertId(alertId).stream().map(this::toResponse).toList();
+    }
+
+    public SecurityAlertSummaryResponse summary() {
+        LocalDateTime last24h = LocalDateTime.now().minusHours(24);
+        return SecurityAlertSummaryResponse.builder()
+                .openCount(alertRepository.countByStatus(SecurityAlertStatus.OPEN))
+                .mediumOpenCount(alertRepository.countByStatusAndSeverity(SecurityAlertStatus.OPEN, AnomalySeverity.MEDIUM))
+                .highOpenCount(alertRepository.countByStatusAndSeverity(SecurityAlertStatus.OPEN, AnomalySeverity.HIGH))
+                .criticalOpenCount(alertRepository.countByStatusAndSeverity(SecurityAlertStatus.OPEN, AnomalySeverity.CRITICAL))
+                .recent24hCount(alertRepository.countByCreatedAtGreaterThanEqual(last24h))
+                .latestAlertAt(alertRepository.findFirstByOrderByCreatedAtDesc().map(SecurityAlertEntity::getCreatedAt).orElse(null))
+                .build();
+    }
+
+    public List<SecurityAlertResponse> recent(Integer limit) {
+        int normalizedLimit = limit == null ? 5 : Math.max(1, Math.min(limit, 50));
+        return alertRepository.findByOrderByCreatedAtDesc(PageRequest.of(0, normalizedLimit)).stream()
+                .map(this::toResponse)
+                .toList();
     }
 
     private void ensureAlertExists(UUID id) {

@@ -26,6 +26,8 @@ public class NotificationDispatcher {
     private final NotificationRuleResolver ruleResolver;
     private final NotificationCooldownService cooldownService;
     private final NotificationDeliveryService deliveryService;
+    private final NotificationPolicyService policyService;
+    private final SecurityAlertBlacklistService blacklistService;
     private final List<NotificationChannelSender> senders;
     private final ObjectMapper objectMapper;
 
@@ -37,6 +39,9 @@ public class NotificationDispatcher {
             deliveryService.record(alert.getId(), alert.getNotificationRuleId(), NotificationChannel.CENTRAL,
                     properties.getDashboardUrl(), NotificationDeliveryStatus.SKIPPED_DISABLED, 0, "Notification disabled");
             return;
+        }
+        if (policyService.shouldAutoBlacklist(alert)) {
+            blacklistService.autoBlacklistCritical(alert);
         }
 
         Optional<NotificationRuleEntity> rule = ruleResolver.resolve(alert);
@@ -69,6 +74,10 @@ public class NotificationDispatcher {
     }
 
     private void recordCentral(SecurityAlertEntity alert, UUID ruleId, int cooldownMinutes) {
+        if (!policyService.isChannelAllowed(alert, NotificationChannel.CENTRAL)) {
+            deliveryService.record(alert.getId(), ruleId, NotificationChannel.CENTRAL, properties.getDashboardUrl(), NotificationDeliveryStatus.SKIPPED_SEVERITY, 0, "Central dashboard requires MEDIUM or higher severity");
+            return;
+        }
         if (!cooldownService.reserve(ruleId, alert.getAlertType(), alert.getFingerprint(), NotificationChannel.CENTRAL, properties.getDashboardUrl(), cooldownMinutes)) {
             deliveryService.record(alert.getId(), ruleId, NotificationChannel.CENTRAL, properties.getDashboardUrl(), NotificationDeliveryStatus.SKIPPED_COOLDOWN, 0, null);
             return;
@@ -81,8 +90,8 @@ public class NotificationDispatcher {
             deliveryService.record(alert.getId(), ruleId, channel, recipient, NotificationDeliveryStatus.SKIPPED_DISABLED, 0, "Channel disabled");
             return;
         }
-        if (channel == NotificationChannel.EMAIL && !isEmailSeverity(alert.getSeverity())) {
-            deliveryService.record(alert.getId(), ruleId, channel, recipient, NotificationDeliveryStatus.SKIPPED_SEVERITY, 0, "Email requires HIGH or CRITICAL severity");
+        if (!policyService.isChannelAllowed(alert, channel)) {
+            deliveryService.record(alert.getId(), ruleId, channel, recipient, NotificationDeliveryStatus.SKIPPED_SEVERITY, 0, channel + " not allowed for alert severity");
             return;
         }
         if (!cooldownService.reserve(ruleId, alert.getAlertType(), alert.getFingerprint(), channel, recipient, cooldownMinutes)) {
@@ -103,10 +112,6 @@ public class NotificationDispatcher {
                 .filter(sender -> sender.supports(channel))
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException("No notification sender for channel " + channel));
-    }
-
-    private boolean isEmailSeverity(AnomalySeverity severity) {
-        return severity == AnomalySeverity.HIGH || severity == AnomalySeverity.CRITICAL;
     }
 
     private boolean isBelowSeverity(AnomalySeverity severity, String threshold) {
