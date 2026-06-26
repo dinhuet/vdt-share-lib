@@ -6,6 +6,7 @@ export const ROUTES = {
   DEFAULT_CONFIGS: 'defaultConfigs',
   ACCESS_POLICIES: 'accessPolicies',
   SECURITY_ALERTS: 'securityAlerts',
+  ANOMALY_RULES: 'anomalyRules',
 };
 
 export const ROUTE_PATHS = {
@@ -16,6 +17,7 @@ export const ROUTE_PATHS = {
   [ROUTES.DEFAULT_CONFIGS]: '/default-configs',
   [ROUTES.ACCESS_POLICIES]: '/access-policies',
   [ROUTES.SECURITY_ALERTS]: '/security-alerts',
+  [ROUTES.ANOMALY_RULES]: '/anomaly-rules',
 };
 
 export function getRouteFromPath(pathname) {

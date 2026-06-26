@@ -24,6 +24,7 @@ export default function Topbar({ activeRoute, onRouteChange, onLogout, user }) {
     [ROUTES.DEFAULT_CONFIGS]: 'Settings / Default Configs',
     [ROUTES.ACCESS_POLICIES]: 'Security / Policies',
     [ROUTES.SECURITY_ALERTS]: 'Security / Alerts',
+    [ROUTES.ANOMALY_RULES]: 'Security / Anomaly Rules',
   };
   const breadcrumb = breadcrumbs[activeRoute] || breadcrumbs[ROUTES.SHARED_APIS];
   const alertCount = useMemo(

@@ -8,6 +8,7 @@ const navItems = [
   ['Default Configs', '⚙', ROUTES.DEFAULT_CONFIGS],
   ['Security Policies', '⬟', ROUTES.ACCESS_POLICIES],
   ['Security Alerts', '⚠', ROUTES.SECURITY_ALERTS],
+  ['Anomaly Rules', '◎', ROUTES.ANOMALY_RULES],
 ];
 
 function getDisplayName(user) {
