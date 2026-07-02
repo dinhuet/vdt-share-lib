@@ -7,7 +7,10 @@ import com.pm.be.enums.AnomalyScopeType;
 import com.pm.be.enums.AnomalySeverity;
 import com.pm.be.enums.SecurityAlertActionType;
 import com.pm.be.enums.SecurityAlertStatus;
+import com.pm.be.exception.AppException;
+import com.pm.be.repository.anomaly.NotificationDeliveryRepository;
 import com.pm.be.repository.anomaly.SecurityAlertActionRepository;
+import com.pm.be.repository.anomaly.SecurityAlertOccurrenceRepository;
 import com.pm.be.repository.anomaly.SecurityAlertRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,7 +23,9 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -28,6 +33,8 @@ import static org.mockito.Mockito.when;
 class SecurityAlertActionServiceTest {
     @Mock SecurityAlertRepository alertRepository;
     @Mock SecurityAlertActionRepository actionRepository;
+    @Mock SecurityAlertOccurrenceRepository occurrenceRepository;
+    @Mock NotificationDeliveryRepository notificationDeliveryRepository;
 
     @Test
     void ack_shouldUpdateStatusAndWriteAction() {
@@ -35,7 +42,7 @@ class SecurityAlertActionServiceTest {
         SecurityAlertEntity alert = alert(alertId);
         when(alertRepository.findById(alertId)).thenReturn(Optional.of(alert));
         when(alertRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-        SecurityAlertActionService service = new SecurityAlertActionService(alertRepository, actionRepository);
+        SecurityAlertActionService service = service();
 
         SecurityAlertActionRequest request = new SecurityAlertActionRequest();
         request.setReason("Investigating");
@@ -46,6 +53,39 @@ class SecurityAlertActionServiceTest {
         verify(actionRepository).save(captor.capture());
         assertThat(captor.getValue().getActionType()).isEqualTo(SecurityAlertActionType.ACK);
         assertThat(captor.getValue().getReason()).isEqualTo("Investigating");
+    }
+
+    @Test
+    void delete_resolvedAlert_shouldDeleteChildrenAndAlert() {
+        UUID alertId = UUID.randomUUID();
+        SecurityAlertEntity alert = alert(alertId);
+        alert.setStatus(SecurityAlertStatus.RESOLVED);
+        when(alertRepository.findById(alertId)).thenReturn(Optional.of(alert));
+
+        service().delete(alertId);
+
+        verify(notificationDeliveryRepository).deleteByAlertId(alertId);
+        verify(occurrenceRepository).deleteByAlertId(alertId);
+        verify(actionRepository).deleteByAlertId(alertId);
+        verify(alertRepository).delete(alert);
+    }
+
+    @Test
+    void delete_openAlert_shouldThrowAndKeepAlert() {
+        UUID alertId = UUID.randomUUID();
+        SecurityAlertEntity alert = alert(alertId);
+        when(alertRepository.findById(alertId)).thenReturn(Optional.of(alert));
+
+        assertThatThrownBy(() -> service().delete(alertId)).isInstanceOf(AppException.class);
+
+        verify(notificationDeliveryRepository, never()).deleteByAlertId(alertId);
+        verify(occurrenceRepository, never()).deleteByAlertId(alertId);
+        verify(actionRepository, never()).deleteByAlertId(alertId);
+        verify(alertRepository, never()).delete(alert);
+    }
+
+    private SecurityAlertActionService service() {
+        return new SecurityAlertActionService(alertRepository, actionRepository, occurrenceRepository, notificationDeliveryRepository);
     }
 
     private SecurityAlertEntity alert(UUID id) {

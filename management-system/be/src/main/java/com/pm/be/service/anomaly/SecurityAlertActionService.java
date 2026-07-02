@@ -9,6 +9,8 @@ import com.pm.be.enums.SecurityAlertStatus;
 import com.pm.be.exception.AppException;
 import com.pm.be.exception.ErrorCode;
 import com.pm.be.repository.anomaly.SecurityAlertActionRepository;
+import com.pm.be.repository.anomaly.NotificationDeliveryRepository;
+import com.pm.be.repository.anomaly.SecurityAlertOccurrenceRepository;
 import com.pm.be.repository.anomaly.SecurityAlertRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -27,6 +29,8 @@ import java.util.UUID;
 public class SecurityAlertActionService {
     private final SecurityAlertRepository alertRepository;
     private final SecurityAlertActionRepository actionRepository;
+    private final SecurityAlertOccurrenceRepository occurrenceRepository;
+    private final NotificationDeliveryRepository notificationDeliveryRepository;
 
     @Transactional
     public SecurityAlertEntity ack(UUID alertId, SecurityAlertActionRequest request) {
@@ -66,6 +70,18 @@ public class SecurityAlertActionService {
         SecurityAlertEntity saved = alertRepository.save(alert);
         record(alertId, SecurityAlertActionType.RESOLVE, request, user);
         return saved;
+    }
+
+    @Transactional
+    public void delete(UUID alertId) {
+        SecurityAlertEntity alert = getAlert(alertId);
+        if (alert.getStatus() != SecurityAlertStatus.RESOLVED && alert.getStatus() != SecurityAlertStatus.IGNORED) {
+            throw new AppException(ErrorCode.SECURITY_ALERT_DELETE_NOT_ALLOWED);
+        }
+        notificationDeliveryRepository.deleteByAlertId(alertId);
+        occurrenceRepository.deleteByAlertId(alertId);
+        actionRepository.deleteByAlertId(alertId);
+        alertRepository.delete(alert);
     }
 
     private SecurityAlertEntity getAlert(UUID alertId) {

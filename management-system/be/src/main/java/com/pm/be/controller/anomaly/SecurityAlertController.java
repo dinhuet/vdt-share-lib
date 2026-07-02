@@ -103,9 +103,15 @@ public class SecurityAlertController {
 
     @PostMapping("/{id}/blacklist-temporary")
     public ApiResponse<SecurityAlertResponse> blacklistTemporary(@PathVariable UUID id,
-                                                                 @RequestBody SecurityAlertTemporaryBlacklistRequest request) {
+                                                                  @RequestBody SecurityAlertTemporaryBlacklistRequest request) {
         return ApiResponse.<SecurityAlertResponse>builder()
                 .result(queryService.toResponse(blacklistService.temporaryBlacklist(id, request)))
                 .build();
+    }
+
+    @DeleteMapping("/{id}")
+    public ApiResponse<Void> delete(@PathVariable UUID id) {
+        actionService.delete(id);
+        return ApiResponse.<Void>builder().build();
     }
 }
