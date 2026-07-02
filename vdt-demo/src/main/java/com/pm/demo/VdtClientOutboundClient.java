@@ -9,7 +9,7 @@ import org.springframework.web.client.RestClient;
 public class VdtClientOutboundClient {
 
     static final String DESTINATION_URL = "http://localhost:8083/api/client/outbound/orders";
-    static final String RETRY_DESTINATION_URL = "http://localhost:8083/api/client/outbound/orders?failTimes=2";
+    static final String RETRY_DESTINATION_URL = "http://localhost:8083/api/client/outbound/orders?failTimes=3";
 
     private final RestClient restClient;
 

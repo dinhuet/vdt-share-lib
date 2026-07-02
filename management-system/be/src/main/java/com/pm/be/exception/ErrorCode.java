@@ -42,6 +42,7 @@ public enum ErrorCode {
     ANOMALY_RULE_INVALID(1038, "Anomaly rule invalid"),
     ANOMALY_RULE_EXISTED(1039, "Anomaly rule already exists"),
     SECURITY_ALERT_NOTFOUND(1040, "Security alert not found"),
+    SECURITY_ALERT_DELETE_NOT_ALLOWED(1041, "Only resolved or ignored security alerts can be deleted"),
 
     ;
 

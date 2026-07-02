@@ -1,6 +1,7 @@
 package com.pm.be.service.anomaly;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pm.be.config.BaselineJobProperties;
 import com.pm.be.enums.AnomalyScopeType;
 import com.pm.be.enums.AnomalyTimeBucketType;
@@ -25,6 +26,7 @@ public class ElasticsearchBaselineQueryService {
             "retry_rate_5m", "p95_duration_5m", "auth_fail_rate_5m", "slow_request_rate_5m");
 
     private final BaselineJobProperties properties;
+    private final ObjectMapper objectMapper;
 
     public Map<String, List<Double>> queryBucketValues(String metric, AnomalyScopeType scopeType, int historyDays,
                                                        AnomalyTimeBucketType timeBucketType, String timeBucket,
@@ -37,14 +39,17 @@ public class ElasticsearchBaselineQueryService {
         Map<String, Object> request = buildRequest(metric, scopeType, timeBucketType, timeBucket, windowSeconds, start, end);
         String path = "/" + UriUtils.encodePathSegment(indexPattern(), StandardCharsets.UTF_8) + "/_search";
         try {
-            JsonNode response = RestClient.create(baseUrl()).post()
+            String responseBody = RestClient.create(baseUrl()).post()
                     .uri(path)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(request)
                     .retrieve()
-                    .body(JsonNode.class);
+                    .body(String.class);
+            JsonNode response = responseBody == null || responseBody.isBlank()
+                    ? null
+                    : objectMapper.readTree(responseBody);
             return parse(metric, response);
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
             log.warn("Failed to query Elasticsearch baseline metric={} scopeType={} timeBucket={}: {}", metric, scopeType, timeBucket, e.getMessage());
             return Map.of();
         }
@@ -63,11 +68,14 @@ public class ElasticsearchBaselineQueryService {
         }
         if (timeBucketType == AnomalyTimeBucketType.SAME_HOUR && timeBucket != null && timeBucket.startsWith("HOUR_")) {
             filters.add(Map.of("script", Map.of("script", Map.of("source",
-                    "doc['" + timestampField() + "'].value.getHour() == params.hour", "params", Map.of("hour", Integer.parseInt(timeBucket.substring(5)))))));
+                    hasField(timestampField()) + " && doc['" + timestampField() + "'].value.getHour() == params.hour", "params", Map.of("hour", Integer.parseInt(timeBucket.substring(5)))))));
         }
         Map<String, Object> bucketsAgg = new LinkedHashMap<>();
         bucketsAgg.put("date_histogram", Map.of("field", timestampField(), "fixed_interval", windowSeconds + "s", "min_doc_count", 1));
-        bucketsAgg.put("aggs", metricAggregations(metric));
+        Map<String, Object> aggregations = metricAggregations(metric);
+        if (!aggregations.isEmpty()) {
+            bucketsAgg.put("aggs", aggregations);
+        }
 
         Map<String, Object> scopeAgg = new LinkedHashMap<>();
         scopeAgg.put("terms", Map.of("script", scopeScript(scopeType), "size", maxScopes()));
@@ -77,17 +85,33 @@ public class ElasticsearchBaselineQueryService {
     }
 
     private Map<String, Object> metricAggregations(String metric) {
-        if ("p95_duration_5m".equals(metric)) {
-            return Map.of("duration_p95", Map.of("percentiles", Map.of("field", "durationMs", "percents", List.of(95))));
-        }
-        return Map.of(
-                "failed", filter("doc['status.keyword'].value == 'FAILED' || doc['status.keyword'].value == 'TIMEOUT'"),
-                "denied", filter("doc['status.keyword'].value == 'DENIED'"),
-                "timeout", filter("doc['status.keyword'].value == 'TIMEOUT' || (!doc['resultCode.keyword'].empty && doc['resultCode.keyword'].value == 'TIMEOUT_EXCEEDED')"),
-                "retry", filter("doc['status.keyword'].value == 'RETRY' || (!doc['resultCode.keyword'].empty && doc['resultCode.keyword'].value == 'RETRY_SCHEDULED') || (!doc['retryAttempt'].empty && doc['retryAttempt'].value > 1)"),
-                "authFail", filter("!doc['resultCode.keyword'].empty && doc['resultCode.keyword'].value.startsWith('AUTH_') && doc['resultCode.keyword'].value != 'AUTH_NONCE_REPLAYED'"),
-                "slowRequest", filter("!doc['durationMs'].empty && !doc['latencyThresholdMs'].empty && doc['durationMs'].value > doc['latencyThresholdMs'].value")
-        );
+        return switch (metric) {
+            case "request_count_1m" -> Map.of();
+            case "error_rate_5m" -> Map.of("failed", filter(statusIs("FAILED") + " || " + statusIs("TIMEOUT")));
+            case "denied_rate_5m" -> Map.of("denied", filter(statusIs("DENIED")));
+            case "timeout_rate_5m" -> Map.of("timeout", filter(statusIs("TIMEOUT") + " || " + resultCodeIs("TIMEOUT_EXCEEDED")));
+            case "retry_rate_5m" -> Map.of("retry", filter(statusIs("RETRY") + " || " + resultCodeIs("RETRY_SCHEDULED") + " || " + retryAttemptGreaterThan(1)));
+            case "auth_fail_rate_5m" -> Map.of("authFail", filter(hasField("resultCode.keyword") + " && doc['resultCode.keyword'].value.startsWith('AUTH_') && doc['resultCode.keyword'].value != 'AUTH_NONCE_REPLAYED'"));
+            case "slow_request_rate_5m" -> Map.of("slowRequest", filter(hasField("durationMs") + " && " + hasField("latencyThresholdMs") + " && doc['durationMs'].value > doc['latencyThresholdMs'].value"));
+            case "p95_duration_5m" -> Map.of("duration_p95", Map.of("percentiles", Map.of("field", "durationMs", "percents", List.of(95))));
+            default -> Map.of();
+        };
+    }
+
+    private String statusIs(String status) {
+        return hasField("status.keyword") + " && doc['status.keyword'].value == '" + status + "'";
+    }
+
+    private String resultCodeIs(String resultCode) {
+        return hasField("resultCode.keyword") + " && doc['resultCode.keyword'].value == '" + resultCode + "'";
+    }
+
+    private String retryAttemptGreaterThan(int retryAttempt) {
+        return hasField("retryAttempt") + " && doc['retryAttempt'].value > " + retryAttempt;
+    }
+
+    private String hasField(String field) {
+        return "doc.containsKey('" + field + "') && !doc['" + field + "'].empty";
     }
 
     private Map<String, Object> filter(String source) {
@@ -95,9 +119,12 @@ public class ElasticsearchBaselineQueryService {
     }
 
     private Map<String, Object> scopeScript(AnomalyScopeType scopeType) {
+        String endpointFields = hasField("flowType.keyword") + " && " + hasField("endpointId.keyword");
         String endpoint = "doc['flowType.keyword'].value + ':' + doc['endpointId.keyword'].value";
-        String client = endpoint + " + ':client:' + doc['clientId.keyword'].value";
-        return Map.of("source", scopeType == AnomalyScopeType.ENDPOINT_CLIENT ? client : endpoint);
+        if (scopeType == AnomalyScopeType.ENDPOINT_CLIENT) {
+            return Map.of("source", "if (!(" + endpointFields + " && " + hasField("clientId.keyword") + ")) { return null; } return " + endpoint + " + ':client:' + doc['clientId.keyword'].value;");
+        }
+        return Map.of("source", "if (!(" + endpointFields + ")) { return null; } return " + endpoint + ";");
     }
 
     private Map<String, List<Double>> parse(String metric, JsonNode response) {

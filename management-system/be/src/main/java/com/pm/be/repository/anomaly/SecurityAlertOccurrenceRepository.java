@@ -8,4 +8,6 @@ import java.util.UUID;
 
 public interface SecurityAlertOccurrenceRepository extends JpaRepository<SecurityAlertOccurrenceEntity, UUID> {
     List<SecurityAlertOccurrenceEntity> findByAlertIdOrderByCreatedAtDesc(UUID alertId);
+
+    void deleteByAlertId(UUID alertId);
 }
