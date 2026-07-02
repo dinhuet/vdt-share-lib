@@ -1,12 +1,12 @@
 import Badge from '../../components/Badge';
-import Button from '../../components/Button';
 import DataTable from '../../components/DataTable';
+import RowActions from '../../components/RowActions';
 import { formatRelativeTime } from '../../utils/date';
 import { getAlertTitle, severityTone, statusTone } from './securityAlerts.helpers';
 
 const columns = ['Alert', 'Severity', 'Status', 'Target', 'Metric', 'Last Seen', 'Actions'];
 
-export default function SecurityAlertsTable({ alerts, busyId, onView, onAck, onIgnore, onResolve, onBlacklist }) {
+export default function SecurityAlertsTable({ alerts, busyId, onView, onAck, onIgnore, onResolve, onBlacklist, onDelete }) {
   return (
     <DataTable
       columns={columns}
@@ -27,13 +27,14 @@ export default function SecurityAlertsTable({ alerts, busyId, onView, onAck, onI
             <td>{alert.metric || '-'} {alert.currentValue ?? '-'} / {alert.thresholdValue ?? '-'}</td>
             <td>{formatRelativeTime(alert.lastSeenAt || alert.updatedAt || alert.createdAt)}</td>
             <td>
-              <div className="row-actions">
-                <Button variant="ghost" disabled={busyId === alert.id} onClick={() => onView(alert)}>View</Button>
-                <Button variant="ghost" disabled={busyId === alert.id || alert.status !== 'OPEN'} onClick={() => onAck(alert)}>Ack</Button>
-                <Button variant="ghost" disabled={busyId === alert.id || closed} onClick={() => onIgnore(alert)}>Ignore</Button>
-                <Button variant="ghost" disabled={busyId === alert.id || alert.status === 'RESOLVED'} onClick={() => onResolve(alert)}>Resolve</Button>
-                <Button variant="danger-ghost" disabled={busyId === alert.id || closed} onClick={() => onBlacklist(alert)}>Temp Blacklist</Button>
-              </div>
+              <RowActions actions={[
+                { label: 'View', disabled: busyId === alert.id, onClick: () => onView(alert) },
+                { label: 'Ack', disabled: busyId === alert.id || alert.status !== 'OPEN', onClick: () => onAck(alert) },
+                { label: 'Ignore', disabled: busyId === alert.id || closed, onClick: () => onIgnore(alert) },
+                { label: 'Resolve', disabled: busyId === alert.id || alert.status === 'RESOLVED', onClick: () => onResolve(alert) },
+                { label: 'Temp Blacklist', danger: true, disabled: busyId === alert.id || closed, onClick: () => onBlacklist(alert) },
+                { label: 'Delete', danger: true, disabled: busyId === alert.id || !closed, onClick: () => onDelete(alert) },
+              ]} />
             </td>
           </tr>
         );

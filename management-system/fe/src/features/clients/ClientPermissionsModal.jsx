@@ -3,6 +3,7 @@ import Badge from '../../components/Badge';
 import Button from '../../components/Button';
 import DataTable from '../../components/DataTable';
 import Modal from '../../components/Modal';
+import RowActions from '../../components/RowActions';
 import { deleteClientPermission, disableClientPermission, enableClientPermission, getClientPermissions, grantClientPermission } from '../../services/clientPermissionsService';
 import { getExposedApis } from '../../services/exposedApisService';
 import { formatRelativeTime } from '../../utils/date';
@@ -116,10 +117,10 @@ export default function ClientPermissionsModal({ client, onClose }) {
               <td><Badge tone={permission.enabled ? 'success' : 'neutral'} size="sm">{permission.enabled ? 'ENABLED' : 'DISABLED'}</Badge></td>
               <td>{formatRelativeTime(permission.updatedAt || permission.createdAt)}</td>
               <td>
-                <div className="row-actions">
-                  <Button variant="ghost" disabled={busyId === permission.id || client?.status !== 'ACTIVE'} onClick={() => handleToggle(permission)}>{permission.enabled ? 'Disable' : 'Enable'}</Button>
-                  <Button variant="danger-ghost" disabled={busyId === permission.id} onClick={() => handleDelete(permission)}>Delete</Button>
-                </div>
+                <RowActions actions={[
+                  { label: permission.enabled ? 'Disable' : 'Enable', disabled: busyId === permission.id || client?.status !== 'ACTIVE', onClick: () => handleToggle(permission) },
+                  { label: 'Delete', danger: true, disabled: busyId === permission.id, onClick: () => handleDelete(permission) },
+                ]} />
               </td>
             </tr>
           )}

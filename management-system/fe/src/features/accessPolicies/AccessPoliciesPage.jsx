@@ -154,9 +154,7 @@ export default function AccessPoliciesPage() {
         <section className="policy-board policy-board-black">
           <div className="policy-board-header">
             <div>
-              <span className="policy-board-mark">BLACK</span>
               <h2>Blacklist</h2>
-              <p>Matched callers are denied before allow rules.</p>
             </div>
             <div className="policy-board-actions">
               <strong>{splitPolicies.black.length}</strong>
@@ -169,9 +167,7 @@ export default function AccessPoliciesPage() {
         <section className="policy-board policy-board-white">
           <div className="policy-board-header">
             <div>
-              <span className="policy-board-mark">WHITE</span>
               <h2>Whitelist</h2>
-              <p>Matched callers are allowed by policy.</p>
             </div>
             <div className="policy-board-actions">
               <strong>{splitPolicies.white.length}</strong>

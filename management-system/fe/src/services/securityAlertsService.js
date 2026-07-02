@@ -53,3 +53,9 @@ export function temporaryBlacklistAlert(id, payload) {
     body: JSON.stringify(payload),
   });
 }
+
+export function deleteAlert(id) {
+  return apiRequest(`${basePath}/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  });
+}

@@ -1,6 +1,6 @@
 import Badge from '../../components/Badge';
-import Button from '../../components/Button';
 import DataTable from '../../components/DataTable';
+import RowActions from '../../components/RowActions';
 import { formatDateTime, formatRelativeTime } from '../../utils/date';
 import { describePolicyTarget } from './accessPolicies.helpers';
 
@@ -20,10 +20,10 @@ export default function PolicyRulesTable({ policies, clients, emptyTitle, emptyD
           <td>{policy.expiresAt ? <span>{formatDateTime(policy.expiresAt)} {policy.temporary ? <Badge tone="warning" size="sm">TEMP</Badge> : null}</span> : <Badge tone="success" size="sm">NO EXPIRY</Badge>}</td>
           <td>{formatRelativeTime(policy.createdAt)}</td>
           <td>
-            <div className="row-actions">
-              <Button variant="ghost" disabled={busyId === policy.id} onClick={() => onFlipType(policy)}>{policy.type === 'WHITE' ? 'Move to Black' : 'Move to White'}</Button>
-              <Button variant="danger-ghost" disabled={busyId === policy.id} onClick={() => onDelete(policy)}>Delete</Button>
-            </div>
+            <RowActions actions={[
+              { label: policy.type === 'WHITE' ? 'Move to Black' : 'Move to White', disabled: busyId === policy.id, onClick: () => onFlipType(policy) },
+              { label: 'Delete', danger: true, disabled: busyId === policy.id, onClick: () => onDelete(policy) },
+            ]} />
           </td>
         </tr>
       )}

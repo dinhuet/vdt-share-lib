@@ -1,6 +1,6 @@
 import Badge, { methodTone, statusTone } from '../../components/Badge';
-import Button from '../../components/Button';
 import DataTable from '../../components/DataTable';
+import RowActions from '../../components/RowActions';
 import ToggleSwitch from '../../components/ToggleSwitch';
 import { formatRelativeTime } from '../../utils/date';
 
@@ -24,11 +24,11 @@ export default function ExposedApisTable({ apis, busyId, onToggleEnabled, onConf
           <td><Badge tone={statusTone(api.syncStatus)} size="sm">{api.syncStatus || '-'}</Badge></td>
           <td>{formatRelativeTime(api.lastSyncedAt || api.updatedAt)}</td>
           <td>
-            <div className="row-actions">
-              <Button variant="ghost" onClick={() => onConfigure(api)}>Config</Button>
-              <Button variant="ghost" disabled={api.id?.startsWith('sample')} onClick={() => onResetDefault(api)}>Default</Button>
-              <Button variant="danger-ghost" disabled={busyId === api.id || api.syncStatus !== 'STALE' || api.id?.startsWith('sample')} onClick={() => onDelete(api)}>Delete</Button>
-            </div>
+            <RowActions actions={[
+              { label: 'Config', onClick: () => onConfigure(api) },
+              { label: 'Default', disabled: api.id?.startsWith('sample'), onClick: () => onResetDefault(api) },
+              { label: 'Delete', danger: true, disabled: busyId === api.id || api.syncStatus !== 'STALE' || api.id?.startsWith('sample'), onClick: () => onDelete(api) },
+            ]} />
           </td>
         </tr>
       )}

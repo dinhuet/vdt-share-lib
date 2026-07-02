@@ -108,7 +108,6 @@ export default function DefaultConfigsPage() {
       <div className="page-header">
         <div>
           <h1>Default API Configs</h1>
-          <p>Manage global and service-specific baselines for exposed and client APIs.</p>
         </div>
         <div className="header-actions">
           <Button variant="secondary" onClick={() => setModal({ mode: 'create-global' })}>◎ Create Global Default</Button>

@@ -1,6 +1,6 @@
 import Badge from '../../components/Badge';
-import Button from '../../components/Button';
 import DataTable from '../../components/DataTable';
+import RowActions from '../../components/RowActions';
 import ToggleSwitch from '../../components/ToggleSwitch';
 import { formatRequests, formatSize } from '../../utils/format';
 
@@ -38,10 +38,10 @@ export default function DefaultConfigsTable({ configs, busyId, onEdit, onToggle,
           <td>{config.logRetentionDays ? `${config.logRetentionDays}d` : '-'}</td>
           <td>{config.notificationRuleId || '-'}</td>
           <td>
-            <div className="row-actions">
-              <Button variant="ghost" onClick={() => onEdit(config)}>Edit</Button>
-              <Button variant="danger-ghost" disabled={config.id?.startsWith('default-')} onClick={() => onDelete(config)}>Delete</Button>
-            </div>
+            <RowActions actions={[
+              { label: 'Edit', onClick: () => onEdit(config) },
+              { label: 'Delete', danger: true, disabled: config.id?.startsWith('default-'), onClick: () => onDelete(config) },
+            ]} />
           </td>
         </tr>
       )}

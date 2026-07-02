@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Button from '../../components/Button';
 import StatCard from '../../components/StatCard';
-import { ackAlert, getAlertSummary, getSecurityAlerts, ignoreAlert, resolveAlert, temporaryBlacklistAlert } from '../../services/securityAlertsService';
+import { ackAlert, deleteAlert, getAlertSummary, getSecurityAlerts, ignoreAlert, resolveAlert, temporaryBlacklistAlert } from '../../services/securityAlertsService';
 import SecurityAlertDetailModal from './SecurityAlertDetailModal';
 import SecurityAlertsFilters from './SecurityAlertsFilters';
 import SecurityAlertsTable from './SecurityAlertsTable';
@@ -34,6 +34,10 @@ export default function SecurityAlertsPage() {
     critical: summary?.criticalOpenCount || 0,
     recent: summary?.recent24hCount || 0,
   }), [summary]);
+  const deletableAlerts = useMemo(
+    () => alerts.filter((alert) => alert.status === 'RESOLVED' || alert.status === 'IGNORED'),
+    [alerts],
+  );
 
   useEffect(() => {
     let mounted = true;
@@ -110,6 +114,54 @@ export default function SecurityAlertsPage() {
     }
   }
 
+  async function handleDelete(alert) {
+    const deletable = alert.status === 'RESOLVED' || alert.status === 'IGNORED';
+    if (!deletable) {
+      setError('Only resolved or ignored alerts can be deleted.');
+      return;
+    }
+    if (!window.confirm(`Delete alert ${alert.alertType || alert.id}?`)) {
+      return;
+    }
+    setBusyId(alert.id);
+    setError('');
+    try {
+      await deleteAlert(alert.id);
+      if (modal?.alert?.id === alert.id) {
+        setModal(null);
+      }
+      await refreshData();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusyId('');
+    }
+  }
+
+  async function handleCleanDeletable() {
+    if (deletableAlerts.length === 0) {
+      return;
+    }
+    if (!window.confirm(`Delete ${deletableAlerts.length} resolved/ignored alert(s) currently shown?`)) {
+      return;
+    }
+    setBusyId('bulk-delete');
+    setError('');
+    try {
+      for (const alert of deletableAlerts) {
+        await deleteAlert(alert.id);
+      }
+      if (modal?.alert && deletableAlerts.some((alert) => alert.id === modal.alert.id)) {
+        setModal(null);
+      }
+      await refreshData();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusyId('');
+    }
+  }
+
   return (
     <div className="page-content security-alert-page">
       <div className="page-header">
@@ -119,6 +171,9 @@ export default function SecurityAlertsPage() {
         </div>
         <div className="header-actions">
           <Button variant="secondary" onClick={refreshData} disabled={loading}>⟳ Refresh</Button>
+          <Button variant="danger-ghost" onClick={handleCleanDeletable} disabled={loading || busyId === 'bulk-delete' || deletableAlerts.length === 0}>
+            {busyId === 'bulk-delete' ? 'Cleaning...' : `Clean Deletable (${deletableAlerts.length})`}
+          </Button>
           <Button variant="ghost" onClick={() => setFilters(initialFilters)} disabled={loading}>Clear Filters</Button>
         </div>
       </div>
@@ -144,6 +199,7 @@ export default function SecurityAlertsPage() {
           onIgnore={(alert) => runAlertAction(alert, ignoreAlert)}
           onResolve={(alert) => runAlertAction(alert, resolveAlert)}
           onBlacklist={(alert) => setModal({ mode: 'blacklist', alert })}
+          onDelete={handleDelete}
         />
       </section>
       <div className="table-footer"><span>Showing {alerts.length} alerts</span><span>{loading ? 'Loading...' : 'Up to date'}</span></div>
