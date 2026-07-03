@@ -3,12 +3,16 @@ import Button from '../../components/Button';
 import Modal from '../../components/Modal';
 import { formToPayload, OPERATORS, RULE_SEVERITIES, RULE_TYPES, ruleToForm, SCOPE_TYPES, TIME_BUCKET_TYPES } from './anomalyRules.helpers';
 
-export default function AnomalyRuleModal({ rule, saving, onClose, onSave }) {
+export default function AnomalyRuleModal({ rule, scopeOptions = {}, saving, onClose, onSave }) {
   const [form, setForm] = useState(() => ruleToForm(rule));
   const [error, setError] = useState('');
 
   function updateField(key, value) {
     setForm((current) => ({ ...current, [key]: value }));
+  }
+
+  function updateScopeType(value) {
+    setForm((current) => ({ ...current, scopeType: value, scopeId: '' }));
   }
 
   function submit() {
@@ -27,6 +31,9 @@ export default function AnomalyRuleModal({ rule, saving, onClose, onSave }) {
 
   const showStatic = form.ruleType === 'STATIC' || form.ruleType === 'HYBRID';
   const showBaseline = form.ruleType === 'BASELINE' || form.ruleType === 'HYBRID';
+  const currentScopeOptions = scopeOptions[form.scopeType] || [];
+  const hasScopeOptions = currentScopeOptions.length > 0;
+  const selectedScopeIdInOptions = currentScopeOptions.some((option) => option.value === form.scopeId);
 
   return (
     <Modal
@@ -41,8 +48,14 @@ export default function AnomalyRuleModal({ rule, saving, onClose, onSave }) {
         <label><span>Metric</span><input value={form.metric} onChange={(event) => updateField('metric', event.target.value)} /></label>
         <label><span>Rule Type</span><select value={form.ruleType} onChange={(event) => updateField('ruleType', event.target.value)}>{RULE_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}</select></label>
         <label><span>Severity</span><select value={form.severity} onChange={(event) => updateField('severity', event.target.value)}>{RULE_SEVERITIES.map((severity) => <option key={severity} value={severity}>{severity}</option>)}</select></label>
-        <label><span>Scope Type</span><select value={form.scopeType} onChange={(event) => updateField('scopeType', event.target.value)}>{SCOPE_TYPES.map((scope) => <option key={scope} value={scope}>{scope}</option>)}</select></label>
-        {form.scopeType !== 'GLOBAL' ? <label><span>Scope ID</span><input value={form.scopeId} onChange={(event) => updateField('scopeId', event.target.value)} /></label> : null}
+        <label><span>Scope Type</span><select value={form.scopeType} onChange={(event) => updateScopeType(event.target.value)}>{SCOPE_TYPES.map((scope) => <option key={scope} value={scope}>{scope}</option>)}</select></label>
+        {form.scopeType !== 'GLOBAL' ? <label><span>Scope ID</span>{hasScopeOptions ? (
+          <select value={form.scopeId} onChange={(event) => updateField('scopeId', event.target.value)}>
+            <option value="">Select {form.scopeType.toLowerCase().replaceAll('_', ' ')}</option>
+            {form.scopeId && !selectedScopeIdInOptions ? <option value={form.scopeId}>{form.scopeId}</option> : null}
+            {currentScopeOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+          </select>
+        ) : <input value={form.scopeId} onChange={(event) => updateField('scopeId', event.target.value)} placeholder={form.scopeType === 'ENDPOINT_IP' ? 'IP address' : 'Scope id'} />}</label> : null}
         <label><span>Cooldown Minutes</span><input type="number" min="0" value={form.cooldownMinutes} onChange={(event) => updateField('cooldownMinutes', event.target.value)} /></label>
         <label className="checkbox-label"><input type="checkbox" checked={form.enabled} onChange={(event) => updateField('enabled', event.target.checked)} />Enabled</label>
         <label className="wide-field"><span>Description</span><textarea value={form.description} onChange={(event) => updateField('description', event.target.value)} /></label>

@@ -2,6 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import Button from '../../components/Button';
 import StatCard from '../../components/StatCard';
 import { createAnomalyRule, getAnomalyRules, updateAnomalyRule, updateAnomalyRuleEnabled } from '../../services/anomalyRulesService';
+import { getClients } from '../../services/clientsService';
+import { getExposedApis } from '../../services/exposedApisService';
+import { getMicroServices } from '../../services/microServicesService';
 import AnomalyRuleModal from './AnomalyRuleModal';
 import AnomalyRulesFilters from './AnomalyRulesFilters';
 import AnomalyRulesTable from './AnomalyRulesTable';
@@ -14,11 +17,15 @@ export default function AnomalyRulesPage() {
   const [error, setError] = useState('');
   const [modalRule, setModalRule] = useState(undefined);
   const [filters, setFilters] = useState({ search: '', ruleType: '', severity: '', enabled: '', scopeType: '' });
+  const [scopeOptions, setScopeOptions] = useState({ SERVICE: [], ENDPOINT: [], ENDPOINT_CLIENT: [] });
 
   const displayedRules = useMemo(() => filterRules(rules, filters), [rules, filters]);
   const stats = useMemo(() => ruleStats(rules), [rules]);
 
-  useEffect(() => { loadRules(); }, []);
+  useEffect(() => {
+    loadRules();
+    loadScopeOptions();
+  }, []);
 
   async function loadRules() {
     setLoading(true);
@@ -31,6 +38,32 @@ export default function AnomalyRulesPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function loadScopeOptions() {
+    const [servicesResult, endpointsResult, clientsResult] = await Promise.allSettled([
+      getMicroServices(),
+      getExposedApis(),
+      getClients(),
+    ]);
+    const services = servicesResult.status === 'fulfilled' ? servicesResult.value : [];
+    const endpoints = endpointsResult.status === 'fulfilled' ? endpointsResult.value : [];
+    const clients = clientsResult.status === 'fulfilled' ? clientsResult.value : [];
+
+    setScopeOptions({
+      SERVICE: (services || []).map((service) => ({
+        value: service.name,
+        label: `${service.name}${service.serviceUrl ? ` (${service.serviceUrl})` : ''}`,
+      })),
+      ENDPOINT: (endpoints || []).map((api) => ({
+        value: api.endpointId,
+        label: `${api.name} - ${api.protocol || 'HTTP'} ${api.method || ''} ${api.path || api.topic || ''}`.trim(),
+      })),
+      ENDPOINT_CLIENT: (clients || []).map((client) => ({
+        value: client.id,
+        label: `${client.name}${client.clientCode ? ` (${client.clientCode})` : ''}`,
+      })),
+    });
   }
 
   async function handleSave(payload) {
@@ -79,7 +112,7 @@ export default function AnomalyRulesPage() {
         <div className="table-card-header"><h2>Configured Anomaly Rules</h2><span>{displayedRules.length} shown</span></div>
         <AnomalyRulesTable rules={displayedRules} busyId={busyId} onEdit={setModalRule} onToggle={handleToggle} />
       </section>
-      {modalRule !== undefined ? <AnomalyRuleModal rule={modalRule} saving={Boolean(busyId)} onClose={() => setModalRule(undefined)} onSave={handleSave} /> : null}
+      {modalRule !== undefined ? <AnomalyRuleModal rule={modalRule} scopeOptions={scopeOptions} saving={Boolean(busyId)} onClose={() => setModalRule(undefined)} onSave={handleSave} /> : null}
     </div>
   );
 }

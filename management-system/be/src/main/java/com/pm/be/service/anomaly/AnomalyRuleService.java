@@ -88,7 +88,6 @@ public class AnomalyRuleService {
         entity.setEnabled(Boolean.TRUE.equals(request.getEnabled()));
         entity.setNotificationRuleId(request.getNotificationRuleId());
         entity.setCooldownMinutes(request.getCooldownMinutes());
-        clearConfigs(entity);
         applyConfigs(entity, request);
         AnomalyRuleResponse response = toResponse(anomalyRuleRepo.save(entity));
         invalidateStaticRuleCache();
@@ -256,42 +255,49 @@ public class AnomalyRuleService {
 
     private void applyConfigs(AnomalyRuleEntity entity, AnomalyRuleUpsertRequest request) {
         if (request.getRuleType() == AnomalyRuleType.STATIC || request.getRuleType() == AnomalyRuleType.HYBRID) {
-            AnomalyStaticRuleConfigRequest config = request.getStaticConfig();
-            entity.setStaticConfig(AnomalyStaticRuleConfigEntity.builder()
-                    .rule(entity)
-                    .thresholdValue(config.getThresholdValue())
-                    .windowSeconds(config.getWindowSeconds())
-                    .minSampleCount(config.getMinSampleCount())
-                    .consecutiveWindows(config.getConsecutiveWindows())
-                    .operator(config.getOperator())
-                    .build());
-        }
-        if (request.getRuleType() == AnomalyRuleType.BASELINE || request.getRuleType() == AnomalyRuleType.HYBRID) {
-            AnomalyBaselineRuleConfigRequest config = request.getBaselineConfig();
-            entity.setBaselineConfig(AnomalyBaselineRuleConfigEntity.builder()
-                    .rule(entity)
-                    .historyDays(config.getHistoryDays())
-                    .timeBucketType(config.getTimeBucketType())
-                    .percentile(config.getPercentile())
-                    .multiplier(config.getMultiplier())
-                    .minAbsoluteThreshold(config.getMinAbsoluteThreshold())
-                    .maxAbsoluteThreshold(config.getMaxAbsoluteThreshold())
-                    .minSampleCount(config.getMinSampleCount())
-                    .consecutiveWindows(config.getConsecutiveWindows())
-                    .windowSeconds(config.getWindowSeconds())
-                    .build());
-        }
-    }
-
-    private void clearConfigs(AnomalyRuleEntity entity) {
-        if (entity.getStaticConfig() != null) {
+            applyStaticConfig(entity, request.getStaticConfig());
+        } else if (entity.getStaticConfig() != null) {
             entity.getStaticConfig().setRule(null);
             entity.setStaticConfig(null);
         }
-        if (entity.getBaselineConfig() != null) {
+        if (request.getRuleType() == AnomalyRuleType.BASELINE || request.getRuleType() == AnomalyRuleType.HYBRID) {
+            applyBaselineConfig(entity, request.getBaselineConfig());
+        } else if (entity.getBaselineConfig() != null) {
             entity.getBaselineConfig().setRule(null);
             entity.setBaselineConfig(null);
         }
+    }
+
+    private void applyStaticConfig(AnomalyRuleEntity entity, AnomalyStaticRuleConfigRequest config) {
+        AnomalyStaticRuleConfigEntity staticConfig = entity.getStaticConfig();
+        if (staticConfig == null) {
+            staticConfig = AnomalyStaticRuleConfigEntity.builder().rule(entity).build();
+            entity.setStaticConfig(staticConfig);
+        }
+        staticConfig.setRule(entity);
+        staticConfig.setThresholdValue(config.getThresholdValue());
+        staticConfig.setWindowSeconds(config.getWindowSeconds());
+        staticConfig.setMinSampleCount(config.getMinSampleCount());
+        staticConfig.setConsecutiveWindows(config.getConsecutiveWindows());
+        staticConfig.setOperator(config.getOperator());
+    }
+
+    private void applyBaselineConfig(AnomalyRuleEntity entity, AnomalyBaselineRuleConfigRequest config) {
+        AnomalyBaselineRuleConfigEntity baselineConfig = entity.getBaselineConfig();
+        if (baselineConfig == null) {
+            baselineConfig = AnomalyBaselineRuleConfigEntity.builder().rule(entity).build();
+            entity.setBaselineConfig(baselineConfig);
+        }
+        baselineConfig.setRule(entity);
+        baselineConfig.setHistoryDays(config.getHistoryDays());
+        baselineConfig.setTimeBucketType(config.getTimeBucketType());
+        baselineConfig.setPercentile(config.getPercentile());
+        baselineConfig.setMultiplier(config.getMultiplier());
+        baselineConfig.setMinAbsoluteThreshold(config.getMinAbsoluteThreshold());
+        baselineConfig.setMaxAbsoluteThreshold(config.getMaxAbsoluteThreshold());
+        baselineConfig.setMinSampleCount(config.getMinSampleCount());
+        baselineConfig.setConsecutiveWindows(config.getConsecutiveWindows());
+        baselineConfig.setWindowSeconds(config.getWindowSeconds());
     }
 
     private boolean isPositive(BigDecimal value) {
