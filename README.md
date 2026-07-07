@@ -103,6 +103,62 @@ Moi module Java da co Maven Wrapper, vi vay khong bat buoc cai Maven global.
 
 ## Khoi dong he thong local
 
+### Chay management system bang Docker Compose
+
+Compose o thu muc goc dong goi `shared-lib`, `management-system/be`, `management-system/fe` va cac dich vu ha tang can thiet. Chay tu thu muc goc repo:
+
+```powershell
+docker compose up --build -d
+```
+
+Mac dinh Compose se khoi dong:
+
+- Frontend quan tri: `http://localhost:3000`
+- Backend quan tri: `http://localhost:8081`
+- Keycloak: `http://localhost:8080`
+- PostgreSQL: `localhost:5433`
+- Redis: `localhost:6379`
+- Kafka: `localhost:9092`
+- Elasticsearch: `http://localhost:9200`
+- Kibana: `http://localhost:5601`
+- Logstash
+
+Co the copy `.env.example` thanh `.env` o thu muc goc repo de override bien moi truong, hoac export truc tiep truoc khi chay:
+
+```env
+POSTGRES_DB=shared-lib
+POSTGRES_USER=admin
+POSTGRES_PASSWORD=123456
+KEYCLOAK_ADMIN=admin
+KEYCLOAK_ADMIN_PASSWORD=admin
+APP_CLIENT_CREDENTIAL_ENCRYPTION_KEY=vdt-local-container-secret
+KEYCLOAK_URL=http://localhost:8080
+KIBANA_DASHBOARD_URL=http://localhost:5601
+```
+
+Trong Docker, backend lay JWKS cua Keycloak qua hostname noi bo `http://keycloak:8080`, con browser/frontend van dang nhap qua `http://localhost:8080`. Vi vay khong can sua file hosts tren may dev.
+
+Lenh kiem tra nhanh:
+
+```powershell
+docker compose ps
+curl http://localhost:3000
+curl http://localhost:8081/api/demo/public
+curl http://localhost:8080/realms/vdt-shared-lib/.well-known/openid-configuration
+```
+
+Dung he thong:
+
+```powershell
+docker compose down
+```
+
+Xoa ca data volume neu can reset sach database/Kafka/Elasticsearch:
+
+```powershell
+docker compose down -v
+```
+
 ### 1. Chay cac dich vu ha tang
 
 ```powershell

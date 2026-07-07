@@ -1,9 +1,11 @@
 import Keycloak from 'keycloak-js';
 
+const appConfig = window.__APP_CONFIG__ || {};
+
 const keycloak = new Keycloak({
-  url: 'http://localhost:8080',
-  realm: 'vdt-shared-lib',
-  clientId: 'fe-app',
+  url: appConfig.KEYCLOAK_URL || import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8080',
+  realm: appConfig.KEYCLOAK_REALM || import.meta.env.VITE_KEYCLOAK_REALM || 'vdt-shared-lib',
+  clientId: appConfig.KEYCLOAK_CLIENT_ID || import.meta.env.VITE_KEYCLOAK_CLIENT_ID || 'fe-app',
 });
 
 let initialized = false;

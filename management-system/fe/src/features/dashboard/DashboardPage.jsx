@@ -1,8 +1,10 @@
-const kibanaDashboardUrl = import.meta.env.VITE_KIBANA_DASHBOARD_URL?.trim() || '';
+const kibanaDashboardUrl = (
+  window.__APP_CONFIG__?.KIBANA_DASHBOARD_URL || import.meta.env.VITE_KIBANA_DASHBOARD_URL || ''
+).trim();
 
 function getDashboardUrlError(url) {
   if (!url) {
-    return 'Kibana dashboard URL is not configured. Set VITE_KIBANA_DASHBOARD_URL and rebuild/restart the frontend.';
+    return 'Kibana dashboard URL is not configured. Set KIBANA_DASHBOARD_URL for the frontend container.';
   }
 
   try {
@@ -11,7 +13,7 @@ function getDashboardUrlError(url) {
       return 'Kibana dashboard URL must use http or https.';
     }
   } catch (err) {
-    return 'Kibana dashboard URL is invalid. Please check VITE_KIBANA_DASHBOARD_URL.';
+    return 'Kibana dashboard URL is invalid. Please check KIBANA_DASHBOARD_URL.';
   }
 
   return '';
